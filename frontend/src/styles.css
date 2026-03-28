@@ -1,0 +1,168 @@
+:root {
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --ink: #1a2338;
+  --soft: #69718a;
+  --primary: #1664d9;
+  --warning: #d97a16;
+  --danger: #c62026;
+  --line: #dce3f1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: radial-gradient(circle at top right, #eaf1ff, var(--bg) 45%);
+  color: var(--ink);
+}
+
+.app-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+nav {
+  display: flex;
+  gap: 12px;
+}
+
+nav a {
+  text-decoration: none;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+nav a.router-link-active {
+  color: var(--ink);
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+.account-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.account-card {
+  border-left: 6px solid #63a1ff;
+}
+
+.account-card.warning {
+  border-left-color: var(--warning);
+  background: #fff8ee;
+}
+
+.account-card.danger {
+  border-left-color: var(--danger);
+  background: #fff1f2;
+}
+
+.meta {
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.energy {
+  margin: 10px 0;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.primary {
+  border-color: var(--primary);
+  color: #fff;
+  background: var(--primary);
+}
+
+button.warn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+tr.warning {
+  background: #fff8ee;
+}
+
+tr.danger {
+  background: #fff1f2;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .energy {
+    font-size: 24px;
+  }
+
+  .app-shell {
+    padding: 12px;
+  }
+}
