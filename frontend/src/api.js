@@ -22,19 +22,48 @@ async function request(path, options = {}) {
 
 export const api = {
   listDashboardAccounts: () => request('/dashboard/accounts'),
+  listPeriodicAccounts: () => request('/periodic/accounts'),
   listAccounts: () => request('/accounts'),
-  getAccountByPlayer: (playerId) => request(`/accounts/by-player/${encodeURIComponent(playerId)}`),
+  getAccountById: (id) => request(`/accounts/by-id/${encodeURIComponent(id)}`),
   createAccount: (payload) => request('/accounts', { method: 'POST', body: JSON.stringify(payload) }),
-  updateAccount: (playerId, payload) =>
-    request(`/accounts/by-player/${encodeURIComponent(playerId)}/update`, { method: 'POST', body: JSON.stringify(payload) }),
-  deleteAccount: (playerId) => request(`/accounts/by-player/${encodeURIComponent(playerId)}/delete`, { method: 'POST' }),
-  setEnergy: (playerId, currentEnergy) =>
-    request(`/accounts/by-player/${encodeURIComponent(playerId)}/energy/set`, {
+  updateAccount: (id, payload) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/update`, { method: 'POST', body: JSON.stringify(payload) }),
+  deleteAccount: (id) => request(`/accounts/by-id/${encodeURIComponent(id)}/delete`, { method: 'POST' }),
+  setWaveplate: (id, currentWaveplate, currentWaveplateCrystal = null) => {
+    const payload = { current_waveplate: currentWaveplate }
+    if (currentWaveplateCrystal !== null && currentWaveplateCrystal !== undefined) {
+      payload.current_waveplate_crystal = currentWaveplateCrystal
+    }
+    return request(`/accounts/by-id/${encodeURIComponent(id)}/energy/set`, {
       method: 'POST',
-      body: JSON.stringify({ current_energy: currentEnergy }),
+      body: JSON.stringify(payload),
+    })
+  },
+  spendWaveplate: (id, cost) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/energy/spend`, {
+      method: 'POST',
+      body: JSON.stringify({ cost }),
     }),
-  spendEnergy: (playerId, cost) =>
-    request(`/accounts/by-player/${encodeURIComponent(playerId)}/energy/spend`, { method: 'POST', body: JSON.stringify({ cost }) }),
+  gainWaveplate: (id, amount = 60) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/energy/gain`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
+  setDailyFlag: (id, flagKey, isDone) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/daily-flags`, {
+      method: 'POST',
+      body: JSON.stringify({ flag_key: flagKey, is_done: isDone }),
+    }),
+  setCheckin: (id, flagKey, isDone) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/checkins`, {
+      method: 'POST',
+      body: JSON.stringify({ flag_key: flagKey, is_done: isDone }),
+    }),
+  setTacet: (id, tacet) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/tacet`, {
+      method: 'POST',
+      body: JSON.stringify({ tacet }),
+    }),
   listTaskTemplates: () => request('/task-templates'),
   createTaskTemplate: (payload) => request('/task-templates', { method: 'POST', body: JSON.stringify(payload) }),
   generateTaskInstances: (payload) =>

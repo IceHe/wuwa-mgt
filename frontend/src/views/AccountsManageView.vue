@@ -3,29 +3,33 @@
     <h2>新建账号</h2>
     <div class="form-grid">
       <label>
-        玩家ID
-        <input v-model="form.player_id" placeholder="例: 120003177" />
+        账号 ID
+        <input v-model="form.id" placeholder="例: 120003177" />
       </label>
       <label>
-        账号缩写
-        <input v-model="form.account_code" />
+        账号缩写 (abbr)
+        <input v-model="form.abbr" />
       </label>
       <label>
-        账号名称
-        <input v-model="form.account_name" />
+        账号昵称
+        <input v-model="form.nickname" />
       </label>
       <label>
         手机号
-        <input v-model="form.phone" />
+        <input v-model="form.phone_number" />
       </label>
       <label>
-        前一个4点体力
-        <input v-model.number="form.energy_at_prev_4am" type="number" min="0" max="480" />
+        上次更新体力
+        <input v-model.number="form.last_waveplate" type="number" min="0" max="240" />
+      </label>
+      <label>
+        体力结晶
+        <input v-model.number="form.waveplate_crystal" type="number" min="0" max="480" />
       </label>
     </div>
     <label>
       备注
-      <textarea v-model="form.note" rows="2" />
+      <textarea v-model="form.remark" rows="2" />
     </label>
     <div class="actions" style="margin-top: 8px">
       <button class="primary" @click="create">创建</button>
@@ -34,31 +38,50 @@
 
   <section class="panel">
     <h2>账号列表</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>玩家ID</th>
-          <th>缩写</th>
-          <th>名称</th>
-          <th>手机号</th>
-          <th>前一个4点体力</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="acc in accounts" :key="acc.player_id">
-          <td>{{ acc.player_id }}</td>
-          <td>{{ acc.account_code }}</td>
-          <td>{{ acc.account_name }}</td>
-          <td>{{ acc.phone || '-' }}</td>
-          <td>{{ acc.energy_at_prev_4am }}</td>
-          <td>
-            <button @click="edit(acc.player_id)">编辑</button>
-            <button class="warn" @click="remove(acc.player_id)">删除</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table class="manage-table">
+        <thead>
+          <tr>
+            <th>ID / 尾号 / 昵称</th>
+            <th>手机号</th>
+            <th>上次体力</th>
+            <th>结晶</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="acc in accounts" :key="acc.id">
+            <td>
+              <div class="account-main">
+                <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
+              </div>
+              <div class="account-sub meta">
+                <span class="phone-tail-text">{{ phoneTail(acc.phone_number) }}</span>
+                <span> / </span>
+                <span class="nickname-text">{{ acc.nickname }}</span>
+              </div>
+            </td>
+            <td>
+              <span v-if="acc.phone_number">{{ maskPhone(acc.phone_number) }}</span>
+              <span v-else>-</span>
+              <button
+                v-if="acc.phone_number"
+                style="margin-left: 6px; padding: 2px 6px"
+                @click="copyPhone(acc)"
+              >
+                {{ copiedAccountId === acc.account_id ? '已复制' : '复制' }}
+              </button>
+            </td>
+            <td>{{ acc.last_waveplate }}</td>
+            <td>{{ acc.waveplate_crystal }}</td>
+            <td>
+              <button @click="edit(acc.id)">编辑</button>
+              <button class="warn" @click="remove(acc.id)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 </template>
 
@@ -69,13 +92,15 @@ import { api } from '../api'
 
 const router = useRouter()
 const accounts = ref([])
+const copiedAccountId = ref(null)
 const form = reactive({
-  player_id: '',
-  account_code: '',
-  account_name: '',
-  phone: '',
-  note: '',
-  energy_at_prev_4am: 0,
+  id: '',
+  phone_number: '',
+  nickname: '',
+  abbr: '',
+  remark: '',
+  last_waveplate: 0,
+  waveplate_crystal: 0,
   is_active: true,
 })
 
@@ -85,22 +110,54 @@ async function refresh() {
 
 async function create() {
   await api.createAccount(form)
-  form.player_id = ''
-  form.account_code = ''
-  form.account_name = ''
-  form.phone = ''
-  form.note = ''
-  form.energy_at_prev_4am = 0
+  form.id = ''
+  form.phone_number = ''
+  form.nickname = ''
+  form.abbr = ''
+  form.remark = ''
+  form.last_waveplate = 0
+  form.waveplate_crystal = 0
   await refresh()
 }
 
-async function remove(playerId) {
-  await api.deleteAccount(playerId)
+async function remove(id) {
+  await api.deleteAccount(id)
   await refresh()
 }
 
-function edit(playerId) {
-  router.push(`/manage/accounts/${encodeURIComponent(playerId)}`)
+function edit(id) {
+  router.push(`/manage/accounts/${encodeURIComponent(id)}`)
+}
+
+function maskPhone(phone) {
+  const raw = String(phone || '').trim()
+  if (raw.length < 7) return raw
+  return `${raw.slice(0, 3)}****${raw.slice(-4)}`
+}
+
+function phoneTail(phone) {
+  const raw = String(phone || '').trim()
+  if (!raw) return '-'
+  return raw.slice(-4)
+}
+
+async function copyPhone(acc) {
+  const full = String(acc.phone_number || '').trim()
+  if (!full) return
+  try {
+    await navigator.clipboard.writeText(full)
+  } catch {
+    const input = document.createElement('input')
+    input.value = full
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+  }
+  copiedAccountId.value = acc.account_id
+  setTimeout(() => {
+    if (copiedAccountId.value === acc.account_id) copiedAccountId.value = null
+  }, 1200)
 }
 
 onMounted(refresh)

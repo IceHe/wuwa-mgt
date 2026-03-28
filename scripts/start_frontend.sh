@@ -12,7 +12,7 @@ import os
 from urllib.parse import urlparse
 
 BACKEND_BASE = 'http://127.0.0.1:8765'
-DIST_DIR = '/root/wuwa/mgt/dist'
+DIST_DIR = '/root/wuwa/mgt/frontend/dist'
 
 
 class ReusableTCPServer(socketserver.TCPServer):

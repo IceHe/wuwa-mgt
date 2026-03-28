@@ -1,36 +1,79 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .models import TaskStatus, TaskType
 
 
 class AccountBase(BaseModel):
-    player_id: str = Field(min_length=1, max_length=64)
-    account_code: str = Field(min_length=1, max_length=32)
-    account_name: str = Field(min_length=1, max_length=128)
-    phone: str | None = Field(default=None, max_length=32)
-    note: str | None = None
+    id: str = Field(min_length=1, max_length=64)
+    phone_number: str | None = Field(default=None, max_length=32)
+    nickname: str = Field(min_length=1, max_length=128)
+    abbr: str = Field(min_length=1, max_length=32)
+    remark: str | None = None
+    tacet: str = ""
     is_active: bool = True
 
 
 class AccountCreate(AccountBase):
-    energy_at_prev_4am: int = 0
+    last_waveplate: int = Field(default=0, ge=0, le=240)
+    waveplate_crystal: int = Field(default=0, ge=0, le=480)
+
+    @model_validator(mode="before")
+    @classmethod
+    def fill_legacy_fields(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        if "id" not in d and "player_id" in d:
+            d["id"] = d["player_id"]
+        if "abbr" not in d and "account_code" in d:
+            d["abbr"] = d["account_code"]
+        if "nickname" not in d and "account_name" in d:
+            d["nickname"] = d["account_name"]
+        if "phone_number" not in d and "phone" in d:
+            d["phone_number"] = d["phone"]
+        if "remark" not in d and "note" in d:
+            d["remark"] = d["note"]
+        if "last_waveplate" not in d and "energy_at_prev_4am" in d:
+            d["last_waveplate"] = d["energy_at_prev_4am"]
+        return d
 
 
 class AccountUpdate(BaseModel):
-    account_code: str | None = None
-    account_name: str | None = None
-    phone: str | None = None
-    note: str | None = None
+    phone_number: str | None = None
+    nickname: str | None = None
+    abbr: str | None = None
+    remark: str | None = None
+    tacet: str | None = None
     is_active: bool | None = None
-    energy_at_prev_4am: int | None = Field(default=None, ge=0, le=480)
+    last_waveplate: int | None = Field(default=None, ge=0, le=240)
+    waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
+
+    @model_validator(mode="before")
+    @classmethod
+    def fill_legacy_fields(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        if "abbr" not in d and "account_code" in d:
+            d["abbr"] = d["account_code"]
+        if "nickname" not in d and "account_name" in d:
+            d["nickname"] = d["account_name"]
+        if "phone_number" not in d and "phone" in d:
+            d["phone_number"] = d["phone"]
+        if "remark" not in d and "note" in d:
+            d["remark"] = d["note"]
+        if "last_waveplate" not in d and "energy_at_prev_4am" in d:
+            d["last_waveplate"] = d["energy_at_prev_4am"]
+        return d
 
 
 class AccountOut(AccountBase):
-    id: int
-    energy_at_prev_4am: int
-    prev_4am_at: datetime
+    account_id: int
+    last_waveplate: int
+    last_waveplate_updated_at: datetime
+    waveplate_crystal: int
     created_at: datetime
     updated_at: datetime
 
@@ -39,23 +82,39 @@ class AccountOut(AccountBase):
 
 
 class EnergySetIn(BaseModel):
-    current_energy: int = Field(ge=0, le=480)
+    current_waveplate: int = Field(default=0, ge=0, le=240)
+    current_waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
+
+    @model_validator(mode="before")
+    @classmethod
+    def fill_legacy_field(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        if "current_waveplate" not in d and "current_energy" in d:
+            d["current_waveplate"] = d["current_energy"]
+        if "current_waveplate_crystal" not in d and "waveplate_crystal" in d:
+            d["current_waveplate_crystal"] = d["waveplate_crystal"]
+        return d
 
 
 class EnergySpendIn(BaseModel):
     cost: int = Field(description="Allowed: 40, 60, 80, 120")
 
 
+class EnergyGainIn(BaseModel):
+    amount: int = Field(description="Allowed: 40, 60")
+
+
 class EnergyOut(BaseModel):
     account_id: int
-    player_id: str
-    current_energy: int
-    energy_at_prev_4am: int
-    prev_4am_at: datetime
-    time_to_240_minutes: int
-    time_to_480_minutes: int
-    eta_240: datetime
-    eta_480: datetime
+    id: str
+    current_waveplate: int
+    current_waveplate_crystal: int
+    last_waveplate: int
+    last_waveplate_updated_at: datetime
+    waveplate_full_in_minutes: int
+    eta_waveplate_full: datetime
     warn_level: str
 
 
@@ -132,14 +191,51 @@ class TaskGenerateOut(BaseModel):
     created: int
 
 
+class DailyFlagUpdateIn(BaseModel):
+    flag_key: str = Field(min_length=1, max_length=64)
+    is_done: bool
+
+
+class TacetUpdateIn(BaseModel):
+    tacet: str
+
+
 class DashboardAccountOut(BaseModel):
     account_id: int
-    player_id: str
-    account_code: str
-    account_name: str
-    current_energy: int
+    id: str
+    abbr: str
+    nickname: str
+    phone_number: str | None
+    remark: str | None
+    tacet: str = ""
+    current_waveplate: int
+    current_waveplate_crystal: int
     warn_level: str
-    time_to_240_minutes: int
-    eta_240: datetime
+    daily_task: bool = False
+    daily_nest: bool = False
+    weekly_door: bool = False
+    weekly_boss: bool = False
+    daily_done: bool = False
+    nest_cleared: bool = False
+    waveplate_full_in_minutes: int
+    eta_waveplate_full: datetime
     todo_count: int
     done_count: int
+
+
+class PeriodicAccountOut(BaseModel):
+    account_id: int
+    id: str
+    abbr: str
+    nickname: str
+    phone_number: str | None
+    version_matrix_soldier: bool = False
+    version_small_coral_exchange: bool = False
+    version_hologram_challenge: bool = False
+    version_echo_template_adjust: bool = False
+    hv_trial_character: bool = False
+    monthly_tower_exchange: bool = False
+    four_week_tower: bool = False
+    four_week_ruins: bool = False
+    range_lahailuo_cube: bool = False
+    range_music_game: bool = False

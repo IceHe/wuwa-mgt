@@ -3,12 +3,14 @@ import DashboardView from './views/DashboardView.vue'
 import AccountsManageView from './views/AccountsManageView.vue'
 import AccountEditView from './views/AccountEditView.vue'
 import TasksView from './views/TasksView.vue'
+import PeriodicView from './views/PeriodicView.vue'
 
 const routes = [
   { path: '/', component: DashboardView },
+  { path: '/periodic', component: PeriodicView },
   { path: '/tasks', component: TasksView },
   { path: '/manage/accounts', component: AccountsManageView },
-  { path: '/manage/accounts/:playerId', component: AccountEditView },
+  { path: '/manage/accounts/:id', component: AccountEditView },
 ]
 
 export default createRouter({

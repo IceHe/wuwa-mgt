@@ -1,10 +1,10 @@
 <template>
   <div class="app-shell">
     <header class="topbar">
-      <h1>鸣潮代肝管理</h1>
+      <h1>鸣潮账号体力管理系统</h1>
       <nav>
-        <RouterLink to="/">主页面</RouterLink>
-        <RouterLink to="/tasks">任务页</RouterLink>
+        <RouterLink to="/">每日每周</RouterLink>
+        <RouterLink to="/periodic">周期活动</RouterLink>
         <RouterLink to="/manage/accounts">账号管理</RouterLink>
       </nav>
     </header>
