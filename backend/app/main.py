@@ -930,7 +930,12 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
         flags_map.setdefault(flag.account_id, {})[flag.flag_key] = bool(flag.is_done)
 
     for acc in accounts:
-        current_wp, current_crystal = snapshot_resources_for_now(acc, now)
+        current_wp, current_crystal = recover_resources(
+            acc.last_waveplate,
+            acc.waveplate_crystal,
+            acc.last_waveplate_updated_at,
+            now,
+        )
         to_full = minutes_to_waveplate_full(current_wp)
         acc_flags = flags_map.get(acc.account_id, {})
 
@@ -972,7 +977,6 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
             )
         )
 
-    db.commit()
     rows.sort(key=lambda item: item.eta_waveplate_full)
     return rows
 
