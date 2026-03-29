@@ -55,6 +55,22 @@ nav a.router-link-active {
   color: var(--ink);
 }
 
+.auth-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.auth-status {
+  font-size: 13px;
+  color: #166534;
+  background: #edf7ef;
+  border: 1px solid #cfe7d4;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
 .grid {
   display: grid;
   gap: 12px;

@@ -1,9 +1,13 @@
 import os
+import json
 from datetime import date, datetime, timedelta
+from urllib import error as urlerror
+from urllib import request as urlrequest
 from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
@@ -45,6 +49,9 @@ from .schemas import (
 
 load_dotenv()
 APP_TZ = os.getenv("APP_TZ", "Asia/Shanghai")
+AUTH_BASE_URL = os.getenv("AUTH_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
+AUTH_REQUIRED_PERMISSION = os.getenv("AUTH_REQUIRED_PERMISSION", "manage")
+AUTH_VALIDATE_TIMEOUT_SECONDS = float(os.getenv("AUTH_VALIDATE_TIMEOUT_SECONDS", "3"))
 ALLOWED_FLAG_KEYS = {
     "daily_task",
     "daily_nest",
@@ -102,6 +109,55 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def extract_token_from_headers(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if auth and auth.lower().startswith("bearer "):
+        token = auth[7:].strip()
+        if token:
+            return token
+    return request.headers.get("X-Token", "").strip()
+
+
+def validate_token_by_auth_service(token: str) -> tuple[bool, str]:
+    payload = {"token": token, "permission": AUTH_REQUIRED_PERMISSION}
+    req = urlrequest.Request(
+        url=f"{AUTH_BASE_URL}/api/validate",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=AUTH_VALIDATE_TIMEOUT_SECONDS) as resp:
+            data = json.loads(resp.read().decode("utf-8") or "{}")
+    except (urlerror.URLError, TimeoutError):
+        return False, "auth service unavailable"
+    except json.JSONDecodeError:
+        return False, "invalid auth response"
+    valid = bool(data.get("valid"))
+    reason = str(data.get("reason") or "")
+    if valid:
+        return True, ""
+    return False, (reason or "forbidden")
+
+
+@app.middleware("http")
+async def require_manage_permission(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
+    if request.url.path in {"/healthz"}:
+        return await call_next(request)
+
+    token = extract_token_from_headers(request)
+    if not token:
+        return JSONResponse(status_code=401, content={"detail": "missing token"})
+
+    valid, reason = validate_token_by_auth_service(token)
+    if not valid:
+        status_code = 403 if reason in {"forbidden", "invalid permission"} else 401
+        return JSONResponse(status_code=status_code, content={"detail": reason})
+    return await call_next(request)
 
 
 @app.on_event("startup")

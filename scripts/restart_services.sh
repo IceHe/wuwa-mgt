@@ -4,7 +4,7 @@ set -euo pipefail
 BACKEND_SERVICE="wuwa-mgt-backend.service"
 FRONTEND_SERVICE="wuwa-mgt-frontend.service"
 BACKEND_HEALTH_URL="http://127.0.0.1:8765/healthz"
-FRONTEND_DASH_URL="http://127.0.0.1:3001/api/dashboard/accounts"
+FRONTEND_HEALTH_URL="http://127.0.0.1:3001/"
 
 echo "[1/4] Restarting services..."
 systemctl restart "${BACKEND_SERVICE}"
@@ -25,7 +25,7 @@ backend_code="000"
 frontend_code="000"
 for _ in $(seq 1 30); do
   backend_code="$(curl --noproxy '*' -sS -o /tmp/mgt_backend_health.json -w '%{http_code}' "${BACKEND_HEALTH_URL}" || true)"
-  frontend_code="$(curl --noproxy '*' -sS -o /tmp/mgt_frontend_dash.json -w '%{http_code}' "${FRONTEND_DASH_URL}" || true)"
+  frontend_code="$(curl --noproxy '*' -sS -o /tmp/mgt_frontend_index.html -w '%{http_code}' "${FRONTEND_HEALTH_URL}" || true)"
   if [[ "${backend_code}" == "200" && "${frontend_code}" == "200" ]]; then
     break
   fi
@@ -37,7 +37,7 @@ if [[ "${backend_code}" != "200" ]]; then
   exit 1
 fi
 if [[ "${frontend_code}" != "200" ]]; then
-  echo "Frontend dashboard check failed with HTTP ${frontend_code}" >&2
+  echo "Frontend health check failed with HTTP ${frontend_code}" >&2
   exit 1
 fi
 
@@ -45,4 +45,4 @@ echo "[4/4] Done."
 echo "Backend: ${BACKEND_SERVICE} (active)"
 echo "Frontend: ${FRONTEND_SERVICE} (active)"
 echo "Health: ${BACKEND_HEALTH_URL} -> ${backend_code}"
-echo "Dashboard: ${FRONTEND_DASH_URL} -> ${frontend_code}"
+echo "Frontend: ${FRONTEND_HEALTH_URL} -> ${frontend_code}"

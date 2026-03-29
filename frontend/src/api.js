@@ -1,9 +1,37 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+const AUTH_TOKEN_KEY = 'wuwa_auth_token'
+
+export function getAuthToken() {
+  try {
+    return (localStorage.getItem(AUTH_TOKEN_KEY) || '').trim()
+  } catch {
+    return ''
+  }
+}
+
+export function setAuthToken(token) {
+  try {
+    const normalized = (token || '').trim()
+    if (normalized) {
+      localStorage.setItem(AUTH_TOKEN_KEY, normalized)
+    } else {
+      localStorage.removeItem(AUTH_TOKEN_KEY)
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function clearAuthToken() {
+  setAuthToken('')
+}
 
 async function request(path, options = {}) {
+  const token = getAuthToken()
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'X-Token': token } : {}),
       ...(options.headers || {}),
     },
     ...options,

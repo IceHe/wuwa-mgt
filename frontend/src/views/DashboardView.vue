@@ -1,8 +1,8 @@
 <template>
   <section class="panel">
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
-      <h2 style="margin: 0">每日每周总览</h2>
       <div class="actions" style="align-items: center">
+        <h2 style="margin: 0">每日每周总览</h2>
         <div class="refresh-indicator" title="每 60 秒自动刷新">
           <div
             class="refresh-pie"
@@ -14,6 +14,8 @@
           ></div>
           <span class="refresh-text">{{ countdownSeconds }}s</span>
         </div>
+      </div>
+      <div class="actions" style="align-items: center">
         <label style="max-width: 220px">
           排序方式
           <select v-model="sortMode">

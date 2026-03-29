@@ -24,6 +24,12 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         length = int(self.headers.get('Content-Length', '0'))
         body = self.rfile.read(length) if length > 0 else None
         headers = {'Content-Type': self.headers.get('Content-Type', 'application/json')}
+        authorization = self.headers.get('Authorization', '').strip()
+        x_token = self.headers.get('X-Token', '').strip()
+        if authorization:
+            headers['Authorization'] = authorization
+        if x_token:
+            headers['X-Token'] = x_token
         req = urllib.request.Request(url=url, data=body, method=self.command, headers=headers)
 
         try:
@@ -32,7 +38,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(resp.status)
                 self.send_header('Content-Type', resp.headers.get('Content-Type', 'application/json'))
                 self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Token')
                 self.send_header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
                 self.send_header('Content-Length', str(len(content)))
                 self.end_headers()
@@ -42,7 +48,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(e.code)
             self.send_header('Content-Type', e.headers.get('Content-Type', 'application/json'))
             self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+            self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Token')
             self.send_header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
             self.send_header('Content-Length', str(len(content)))
             self.end_headers()
@@ -61,7 +67,7 @@ class ProxyHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Token')
         self.end_headers()
 
     def do_GET(self):
