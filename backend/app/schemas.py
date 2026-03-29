@@ -193,7 +193,14 @@ class TaskGenerateOut(BaseModel):
 
 class DailyFlagUpdateIn(BaseModel):
     flag_key: str = Field(min_length=1, max_length=64)
-    is_done: bool
+    is_done: bool | None = None
+    status: str | None = Field(default=None, pattern="^(todo|done|skipped)$")
+
+    @model_validator(mode="after")
+    def validate_one_of(self):
+        if self.status is None and self.is_done is None:
+            raise ValueError("status or is_done is required")
+        return self
 
 
 class TacetUpdateIn(BaseModel):
@@ -215,6 +222,10 @@ class DashboardAccountOut(BaseModel):
     daily_nest: bool = False
     weekly_door: bool = False
     weekly_boss: bool = False
+    daily_task_status: str = "todo"
+    daily_nest_status: str = "todo"
+    weekly_door_status: str = "todo"
+    weekly_boss_status: str = "todo"
     daily_done: bool = False
     nest_cleared: bool = False
     waveplate_full_in_minutes: int
@@ -230,12 +241,22 @@ class PeriodicAccountOut(BaseModel):
     nickname: str
     phone_number: str | None
     version_matrix_soldier: bool = False
+    version_matrix_soldier_status: str = "todo"
     version_small_coral_exchange: bool = False
+    version_small_coral_exchange_status: str = "todo"
     version_hologram_challenge: bool = False
+    version_hologram_challenge_status: str = "todo"
     version_echo_template_adjust: bool = False
+    version_echo_template_adjust_status: str = "todo"
     hv_trial_character: bool = False
+    hv_trial_character_status: str = "todo"
     monthly_tower_exchange: bool = False
+    monthly_tower_exchange_status: str = "todo"
     four_week_tower: bool = False
+    four_week_tower_status: str = "todo"
     four_week_ruins: bool = False
+    four_week_ruins_status: str = "todo"
     range_lahailuo_cube: bool = False
+    range_lahailuo_cube_status: str = "todo"
     range_music_game: bool = False
+    range_music_game_status: str = "todo"

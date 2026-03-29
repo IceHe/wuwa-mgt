@@ -44,9 +44,17 @@
         <tr
           v-for="acc in sortedAccounts"
           :key="acc.id"
-          :class="[acc.warn_level, { edited: isHighlighted(acc.id) }]"
+          @click="toggleHighlight(acc.id)"
+          :class="[
+            acc.warn_level,
+            {
+              edited: isHighlighted(acc.id),
+              'all-done-row': !isHighlighted(acc.id) && isAllChecklistCompleted(acc.id),
+            },
+          ]"
         >
           <td>
+            <div v-if="isAllChecklistCompleted(acc.id)" class="all-done-badge">ALL DONE</div>
             <div class="account-main">
               <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
             </div>
@@ -111,41 +119,49 @@
           </td>
           <td>
             <div class="status-wrap">
-              <label :class="['status-item', 'flag-daily-task', { 'flag-all-done': allDoneFlags.daily_task }]">
-                <input
-                  type="checkbox"
-                  v-model="dailyDoneInput[acc.id]"
-                  @change="updateDailyFlag(acc.id, 'daily_task', !!dailyDoneInput[acc.id])"
-                />
-                <span>日常</span>
+              <label :class="['status-item', 'flag-daily-task', statusClass(dailyTaskStatusInput[acc.id]), { 'flag-all-done': allDoneFlags.daily_task }]">
+                <button
+                  type="button"
+                  class="status-toggle"
+                  @click="cycleDailyFlag(acc.id, 'daily_task')"
+                >
+                  {{ statusLabel(dailyTaskStatusInput[acc.id]) }}
+                </button>
+                <span :class="['status-label', { completed: isCompletedStatus(dailyTaskStatusInput[acc.id]) }]">日常</span>
               </label>
-              <label :class="['status-item', 'flag-daily-nest', { 'flag-all-done': allDoneFlags.daily_nest }]">
-                <input
-                  type="checkbox"
-                  v-model="nestClearedInput[acc.id]"
-                  @change="updateDailyFlag(acc.id, 'daily_nest', !!nestClearedInput[acc.id])"
-                />
-                <span>聚落</span>
+              <label :class="['status-item', 'flag-daily-nest', statusClass(dailyNestStatusInput[acc.id]), { 'flag-all-done': allDoneFlags.daily_nest }]">
+                <button
+                  type="button"
+                  class="status-toggle"
+                  @click="cycleDailyFlag(acc.id, 'daily_nest')"
+                >
+                  {{ statusLabel(dailyNestStatusInput[acc.id]) }}
+                </button>
+                <span :class="['status-label', { completed: isCompletedStatus(dailyNestStatusInput[acc.id]) }]">聚落</span>
               </label>
             </div>
           </td>
           <td>
             <div class="status-wrap">
-              <label :class="['status-item', 'flag-weekly-door', { 'flag-all-done': allDoneFlags.weekly_door }]">
-                <input
-                  type="checkbox"
-                  v-model="weeklyDoorInput[acc.id]"
-                  @change="updateDailyFlag(acc.id, 'weekly_door', !!weeklyDoorInput[acc.id])"
-                />
-                <span>门扉</span>
+              <label :class="['status-item', 'flag-weekly-door', statusClass(weeklyDoorStatusInput[acc.id]), { 'flag-all-done': allDoneFlags.weekly_door }]">
+                <button
+                  type="button"
+                  class="status-toggle"
+                  @click="cycleDailyFlag(acc.id, 'weekly_door')"
+                >
+                  {{ statusLabel(weeklyDoorStatusInput[acc.id]) }}
+                </button>
+                <span :class="['status-label', { completed: isCompletedStatus(weeklyDoorStatusInput[acc.id]) }]">门扉</span>
               </label>
-              <label :class="['status-item', 'flag-weekly-boss', { 'flag-all-done': allDoneFlags.weekly_boss }]">
-                <input
-                  type="checkbox"
-                  v-model="weeklyBossInput[acc.id]"
-                  @change="updateDailyFlag(acc.id, 'weekly_boss', !!weeklyBossInput[acc.id])"
-                />
-                <span>周本</span>
+              <label :class="['status-item', 'flag-weekly-boss', statusClass(weeklyBossStatusInput[acc.id]), { 'flag-all-done': allDoneFlags.weekly_boss }]">
+                <button
+                  type="button"
+                  class="status-toggle"
+                  @click="cycleDailyFlag(acc.id, 'weekly_boss')"
+                >
+                  {{ statusLabel(weeklyBossStatusInput[acc.id]) }}
+                </button>
+                <span :class="['status-label', { completed: isCompletedStatus(weeklyBossStatusInput[acc.id]) }]">周本</span>
               </label>
             </div>
           </td>
@@ -162,15 +178,16 @@ import { api } from '../api'
 
 const REFRESH_INTERVAL_SECONDS = 60
 const LAST_EDIT_STORAGE_KEY = 'wuwa_dashboard_last_edit_map_v1'
+const STATUS_FLOW = ['todo', 'done', 'skipped']
 const accounts = ref([])
 const sortMode = ref('eta')
 const manualInput = ref({})
 const manualCrystalInput = ref({})
 const tacetInput = ref({})
-const dailyDoneInput = ref({})
-const nestClearedInput = ref({})
-const weeklyDoorInput = ref({})
-const weeklyBossInput = ref({})
+const dailyTaskStatusInput = ref({})
+const dailyNestStatusInput = ref({})
+const weeklyDoorStatusInput = ref({})
+const weeklyBossStatusInput = ref({})
 const highlightedAccountId = ref(null)
 const countdownSeconds = ref(REFRESH_INTERVAL_SECONDS)
 const savedWaveplate = ref({})
@@ -232,10 +249,10 @@ const countdownProgress = computed(() => {
 const countdownRemainProgress = computed(() => 1 - countdownProgress.value)
 
 const allDoneFlags = computed(() => ({
-  daily_task: isAllChecked(dailyDoneInput.value),
-  daily_nest: isAllChecked(nestClearedInput.value),
-  weekly_door: isAllChecked(weeklyDoorInput.value),
-  weekly_boss: isAllChecked(weeklyBossInput.value),
+  daily_task: isAllCompleted(dailyTaskStatusInput.value),
+  daily_nest: isAllCompleted(dailyNestStatusInput.value),
+  weekly_door: isAllCompleted(weeklyDoorStatusInput.value),
+  weekly_boss: isAllCompleted(weeklyBossStatusInput.value),
 }))
 
 async function refresh() {
@@ -246,10 +263,10 @@ async function refresh() {
     tacetInput.value[acc.id] = acc.tacet || ''
     savedWaveplate.value[acc.id] = acc.current_waveplate
     savedCrystal.value[acc.id] = acc.current_waveplate_crystal
-    dailyDoneInput.value[acc.id] = !!(acc.daily_task ?? acc.daily_done)
-    nestClearedInput.value[acc.id] = !!(acc.daily_nest ?? acc.nest_cleared)
-    weeklyDoorInput.value[acc.id] = !!acc.weekly_door
-    weeklyBossInput.value[acc.id] = !!acc.weekly_boss
+    dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task ?? acc.daily_done)
+    dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest ?? acc.nest_cleared)
+    weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
+    weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
   }
   syncHighlightedAccountId()
 }
@@ -293,10 +310,50 @@ function isHighlighted(id) {
   return normalizedId(id) === normalizedId(highlightedAccountId.value)
 }
 
-function isAllChecked(map) {
+function toggleHighlight(id) {
+  const key = normalizedId(id)
+  highlightedAccountId.value = normalizedId(highlightedAccountId.value) === key ? null : key
+}
+
+function normalizeStatus(status, boolFallback = false) {
+  if (typeof status === 'string' && STATUS_FLOW.includes(status)) return status
+  return boolFallback ? 'done' : 'todo'
+}
+
+function isCompletedStatus(status) {
+  const normalized = normalizeStatus(status)
+  return normalized === 'done' || normalized === 'skipped'
+}
+
+function statusClass(status) {
+  return `status-${normalizeStatus(status)}`
+}
+
+function statusLabel(status) {
+  const normalized = normalizeStatus(status)
+  if (normalized === 'done') return 'Done'
+  if (normalized === 'skipped') return 'Skip'
+  return 'Todo'
+}
+
+function nextStatus(status) {
+  const idx = STATUS_FLOW.indexOf(normalizeStatus(status))
+  return STATUS_FLOW[(idx + 1) % STATUS_FLOW.length]
+}
+
+function isAllCompleted(map) {
   const ids = accounts.value.map((acc) => normalizedId(acc.id))
   if (!ids.length) return false
-  return ids.every((id) => !!map[id])
+  return ids.every((id) => isCompletedStatus(map[id]))
+}
+
+function isAllChecklistCompleted(id) {
+  return (
+    isCompletedStatus(dailyTaskStatusInput.value[id]) &&
+    isCompletedStatus(dailyNestStatusInput.value[id]) &&
+    isCompletedStatus(weeklyDoorStatusInput.value[id]) &&
+    isCompletedStatus(weeklyBossStatusInput.value[id])
+  )
 }
 
 async function spend(id, cost) {
@@ -348,9 +405,24 @@ async function submitWaveplate(id) {
   }
 }
 
-async function updateDailyFlag(id, flagKey, isDone) {
+function statusMapByKey(flagKey) {
+  if (flagKey === 'daily_task') return dailyTaskStatusInput.value
+  if (flagKey === 'daily_nest') return dailyNestStatusInput.value
+  if (flagKey === 'weekly_door') return weeklyDoorStatusInput.value
+  return weeklyBossStatusInput.value
+}
+
+async function cycleDailyFlag(id, flagKey) {
+  const map = statusMapByKey(flagKey)
+  const current = map[id]
+  const next = nextStatus(current)
+  map[id] = next
+  await updateDailyFlag(id, flagKey, next)
+}
+
+async function updateDailyFlag(id, flagKey, status) {
   try {
-    await api.setDailyFlag(id, flagKey, isDone)
+    await api.setDailyFlag(id, flagKey, status)
     markEdited(id)
   } catch (err) {
     alert(`保存失败：${err.message || '请稍后重试'}`)

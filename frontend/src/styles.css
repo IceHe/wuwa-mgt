@@ -360,18 +360,50 @@ table {
   white-space: nowrap;
 }
 
-.status-item input[type='checkbox'] {
-  width: auto;
-  margin: 0;
+.status-toggle {
+  border: 1px solid #cfd7e7;
+  border-radius: 10px;
+  padding: 0 7px;
+  min-width: 38px;
+  height: 22px;
+  line-height: 20px;
+  font-size: 12px;
+  color: #374151;
+  background: #f8fafc;
+  cursor: pointer;
 }
 
-.status-item input[type='checkbox']:checked + span {
+.status-toggle:hover {
+  border-color: #97a3ba;
+}
+
+.status-label.completed {
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
   opacity: 0.78;
 }
 
-.status-item.flag-all-done input[type='checkbox'] {
+.status-item.status-done .status-toggle {
+  border-color: #72bf8e;
+  background: #ecf9f1;
+  color: #166534;
+  font-weight: 600;
+}
+
+.status-item.status-skipped .status-toggle {
+  border-color: #e6b56d;
+  background: #fff6ea;
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.status-item.status-todo .status-toggle {
+  border-color: #cfd7e7;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.status-item.flag-all-done .status-toggle {
   opacity: 0.45;
   filter: saturate(45%);
 }
@@ -380,116 +412,74 @@ table {
   opacity: 0.46;
 }
 
-.status-item.flag-daily-task input[type='checkbox'] {
-  accent-color: #2563eb;
-}
-
-.status-item.flag-daily-task span {
+.status-item.flag-daily-task .status-label {
   color: #1d4ed8;
 }
 
-.status-item.flag-daily-nest input[type='checkbox'] {
-  accent-color: #0d9488;
-}
-
-.status-item.flag-daily-nest span {
+.status-item.flag-daily-nest .status-label {
   color: #0f766e;
 }
 
-.status-item.flag-weekly-door input[type='checkbox'] {
-  accent-color: #9333ea;
-}
-
-.status-item.flag-weekly-door span {
+.status-item.flag-weekly-door .status-label {
   color: #7e22ce;
 }
 
-.status-item.flag-weekly-boss input[type='checkbox'] {
-  accent-color: #b45309;
-}
-
-.status-item.flag-weekly-boss span {
+.status-item.flag-weekly-boss .status-label {
   color: #92400e;
 }
 
-.status-item.flag-version-matrix input[type='checkbox'] {
-  accent-color: #4f46e5;
-}
-
-.status-item.flag-version-matrix span {
+.status-item.flag-version-matrix .status-label {
   color: #4338ca;
 }
 
-.status-item.flag-version-coral input[type='checkbox'] {
-  accent-color: #db2777;
-}
-
-.status-item.flag-version-coral span {
+.status-item.flag-version-coral .status-label {
   color: #be185d;
 }
 
-.status-item.flag-version-hologram input[type='checkbox'] {
-  accent-color: #0891b2;
-}
-
-.status-item.flag-version-hologram span {
+.status-item.flag-version-hologram .status-label {
   color: #0e7490;
 }
 
-.status-item.flag-version-template input[type='checkbox'] {
-  accent-color: #059669;
-}
-
-.status-item.flag-version-template span {
+.status-item.flag-version-template .status-label {
   color: #047857;
 }
 
-.status-item.flag-hv-trial input[type='checkbox'] {
-  accent-color: #7c3aed;
-}
-
-.status-item.flag-hv-trial span {
+.status-item.flag-hv-trial .status-label {
   color: #6d28d9;
 }
 
-.status-item.flag-monthly-tower input[type='checkbox'] {
-  accent-color: #ea580c;
-}
-
-.status-item.flag-monthly-tower span {
+.status-item.flag-monthly-tower .status-label {
   color: #c2410c;
 }
 
-.status-item.flag-fw-tower input[type='checkbox'] {
-  accent-color: #2563eb;
-}
-
-.status-item.flag-fw-tower span {
+.status-item.flag-fw-tower .status-label {
   color: #1e40af;
 }
 
-.status-item.flag-fw-ruins input[type='checkbox'] {
-  accent-color: #16a34a;
-}
-
-.status-item.flag-fw-ruins span {
+.status-item.flag-fw-ruins .status-label {
   color: #15803d;
 }
 
-.status-item.flag-range-lahailuo input[type='checkbox'] {
-  accent-color: #dc2626;
-}
-
-.status-item.flag-range-lahailuo span {
+.status-item.flag-range-lahailuo .status-label {
   color: #b91c1c;
 }
 
-.status-item.flag-range-music input[type='checkbox'] {
-  accent-color: #c026d3;
+.status-item.flag-range-music .status-label {
+  color: #a21caf;
 }
 
-.status-item.flag-range-music span {
-  color: #a21caf;
+.all-done-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  border: 1px solid #cde5d6;
+  background: #eff8f2;
+  color: #2f6f4f;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .tacet-select.tacet-empty {
@@ -599,6 +589,12 @@ tr.edited td {
   box-shadow: inset 0 0 0 9999px rgba(255, 214, 102, 0.42);
   border-top: 1px solid #e0b95a;
   border-bottom: 1px solid #e0b95a;
+}
+
+tr.all-done-row td {
+  box-shadow: inset 0 0 0 9999px rgba(241, 247, 243, 0.45);
+  opacity: 0.46;
+  filter: saturate(45%);
 }
 
 input,

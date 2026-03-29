@@ -77,16 +77,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
-  setDailyFlag: (id, flagKey, isDone) =>
-    request(`/accounts/by-id/${encodeURIComponent(id)}/daily-flags`, {
+  setDailyFlag: (id, flagKey, statusOrDone) => {
+    const payload = { flag_key: flagKey }
+    if (typeof statusOrDone === 'string') payload.status = statusOrDone
+    else payload.is_done = !!statusOrDone
+    return request(`/accounts/by-id/${encodeURIComponent(id)}/daily-flags`, {
       method: 'POST',
-      body: JSON.stringify({ flag_key: flagKey, is_done: isDone }),
-    }),
-  setCheckin: (id, flagKey, isDone) =>
-    request(`/accounts/by-id/${encodeURIComponent(id)}/checkins`, {
+      body: JSON.stringify(payload),
+    })
+  },
+  setCheckin: (id, flagKey, statusOrDone) => {
+    const payload = { flag_key: flagKey }
+    if (typeof statusOrDone === 'string') payload.status = statusOrDone
+    else payload.is_done = !!statusOrDone
+    return request(`/accounts/by-id/${encodeURIComponent(id)}/checkins`, {
       method: 'POST',
-      body: JSON.stringify({ flag_key: flagKey, is_done: isDone }),
-    }),
+      body: JSON.stringify(payload),
+    })
+  },
   setTacet: (id, tacet) =>
     request(`/accounts/by-id/${encodeURIComponent(id)}/tacet`, {
       method: 'POST',

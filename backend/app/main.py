@@ -99,6 +99,7 @@ LAHAILUO_RANGE_END = date.fromisoformat("2026-04-13")
 MUSIC_GAME_RANGE_START = date.fromisoformat("2026-03-19")
 MUSIC_GAME_RANGE_END = date.fromisoformat("2026-04-29")
 ALLOWED_TACET_VALUES = {"", "爱弥斯", "西格莉卡", "旧暗", "旧雷", "达妮娅"}
+DONE_STATUSES = {"done", "skipped"}
 
 app = FastAPI(title="Wuwa Account Manager API", version="0.1.0")
 
@@ -331,8 +332,10 @@ def ensure_checkin_columns() -> None:
     ddl = [
         "ALTER TABLE account_checkins ADD COLUMN IF NOT EXISTS period_type VARCHAR(16) DEFAULT 'daily'",
         "ALTER TABLE account_checkins ADD COLUMN IF NOT EXISTS period_key VARCHAR(32) DEFAULT ''",
+        "ALTER TABLE account_checkins ADD COLUMN IF NOT EXISTS status VARCHAR(16) DEFAULT 'todo'",
         "CREATE INDEX IF NOT EXISTS ix_account_checkins_period_type ON account_checkins (period_type)",
         "CREATE INDEX IF NOT EXISTS ix_account_checkins_period_key ON account_checkins (period_key)",
+        "CREATE INDEX IF NOT EXISTS ix_account_checkins_status ON account_checkins (status)",
         "CREATE INDEX IF NOT EXISTS ix_account_checkins_account_period ON account_checkins (account_id, period_type, period_key)",
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_account_checkin_compound ON account_checkins (account_id, period_type, period_key, flag_key)",
     ]
@@ -344,6 +347,14 @@ def ensure_checkin_columns() -> None:
                 "UPDATE account_checkins SET "
                 "period_type = COALESCE(NULLIF(period_type, ''), 'daily'), "
                 "period_key = COALESCE(NULLIF(period_key, ''), status_date::text), "
+                "status = CASE "
+                "WHEN status IN ('done', 'skipped') THEN status "
+                "WHEN is_done THEN 'done' "
+                "ELSE 'todo' END, "
+                "is_done = CASE "
+                "WHEN status IN ('done', 'skipped') THEN TRUE "
+                "WHEN status = 'todo' THEN FALSE "
+                "ELSE is_done END, "
                 "flag_key = CASE "
                 "WHEN flag_key = 'daily_done' THEN 'daily_task' "
                 "WHEN flag_key = 'nest_cleared' THEN 'daily_nest' "
@@ -620,6 +631,8 @@ def set_daily_flag_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depe
             AccountCheckin.flag_key == normalized_key,
         )
     )
+    resolved_status = payload.status if payload.status is not None else ("done" if payload.is_done else "todo")
+    is_done = resolved_status in DONE_STATUSES
     if item is None:
         item = AccountCheckin(
             account_id=account.account_id,
@@ -627,16 +640,18 @@ def set_daily_flag_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depe
             period_type=period_type,
             period_key=period_key,
             flag_key=normalized_key,
-            is_done=payload.is_done,
+            status=resolved_status,
+            is_done=is_done,
         )
         db.add(item)
     else:
-        item.is_done = payload.is_done
+        item.status = resolved_status
+        item.is_done = is_done
         item.status_date = status_date
         item.period_type = period_type
         item.period_key = period_key
     db.commit()
-    return {"ok": True, "flag_key": normalized_key, "is_done": payload.is_done}
+    return {"ok": True, "flag_key": normalized_key, "status": resolved_status, "is_done": is_done}
 
 
 @app.post("/accounts/by-player/{player_id}/daily-flags")
@@ -925,9 +940,11 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 ),
             )
         ).all()
-    flags_map: dict[int, dict[str, bool]] = {}
+    flags_map: dict[int, dict[str, str]] = {}
     for flag in flags:
-        flags_map.setdefault(flag.account_id, {})[flag.flag_key] = bool(flag.is_done)
+        raw_status = (flag.status or "").strip().lower()
+        normalized_status = raw_status if raw_status in {"todo", "done", "skipped"} else ("done" if flag.is_done else "todo")
+        flags_map.setdefault(flag.account_id, {})[flag.flag_key] = normalized_status
 
     for acc in accounts:
         current_wp, current_crystal = recover_resources(
@@ -938,6 +955,10 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
         )
         to_full = minutes_to_waveplate_full(current_wp)
         acc_flags = flags_map.get(acc.account_id, {})
+        daily_task_status = acc_flags.get("daily_task", "todo")
+        daily_nest_status = acc_flags.get("daily_nest", "todo")
+        weekly_door_status = acc_flags.get("weekly_door", "todo")
+        weekly_boss_status = acc_flags.get("weekly_boss", "todo")
 
         todo_count = db.scalar(
             select(func.count(TaskInstance.id)).where(
@@ -964,12 +985,16 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 current_waveplate=current_wp,
                 current_waveplate_crystal=current_crystal,
                 warn_level=warn_level(current_wp),
-                daily_task=acc_flags.get("daily_task", False),
-                daily_nest=acc_flags.get("daily_nest", False),
-                weekly_door=acc_flags.get("weekly_door", False),
-                weekly_boss=acc_flags.get("weekly_boss", False),
-                daily_done=acc_flags.get("daily_task", False),
-                nest_cleared=acc_flags.get("daily_nest", False),
+                daily_task=daily_task_status in DONE_STATUSES,
+                daily_nest=daily_nest_status in DONE_STATUSES,
+                weekly_door=weekly_door_status in DONE_STATUSES,
+                weekly_boss=weekly_boss_status in DONE_STATUSES,
+                daily_task_status=daily_task_status,
+                daily_nest_status=daily_nest_status,
+                weekly_door_status=weekly_door_status,
+                weekly_boss_status=weekly_boss_status,
+                daily_done=daily_task_status in DONE_STATUSES,
+                nest_cleared=daily_nest_status in DONE_STATUSES,
                 waveplate_full_in_minutes=to_full,
                 eta_waveplate_full=now + timedelta(minutes=to_full),
                 todo_count=todo_count or 0,
@@ -1011,15 +1036,27 @@ def periodic_accounts(db: Session = Depends(get_db)) -> list[PeriodicAccountOut]
         )
     ).all()
 
-    flags_map: dict[int, dict[str, bool]] = {}
+    flags_map: dict[int, dict[str, str]] = {}
     for item in checkins:
         if (item.period_type, item.period_key) not in expected_set:
             continue
-        flags_map.setdefault(item.account_id, {})[item.flag_key] = bool(item.is_done)
+        raw_status = (item.status or "").strip().lower()
+        normalized_status = raw_status if raw_status in {"todo", "done", "skipped"} else ("done" if item.is_done else "todo")
+        flags_map.setdefault(item.account_id, {})[item.flag_key] = normalized_status
 
     rows: list[PeriodicAccountOut] = []
     for acc in accounts:
         acc_flags = flags_map.get(acc.account_id, {})
+        version_matrix_soldier_status = acc_flags.get("version_matrix_soldier", "todo")
+        version_small_coral_exchange_status = acc_flags.get("version_small_coral_exchange", "todo")
+        version_hologram_challenge_status = acc_flags.get("version_hologram_challenge", "todo")
+        version_echo_template_adjust_status = acc_flags.get("version_echo_template_adjust", "todo")
+        hv_trial_character_status = acc_flags.get("hv_trial_character", "todo")
+        monthly_tower_exchange_status = acc_flags.get("monthly_tower_exchange", "todo")
+        four_week_tower_status = acc_flags.get("four_week_tower", "todo")
+        four_week_ruins_status = acc_flags.get("four_week_ruins", "todo")
+        range_lahailuo_cube_status = acc_flags.get("range_lahailuo_cube", "todo")
+        range_music_game_status = acc_flags.get("range_music_game", "todo")
         rows.append(
             PeriodicAccountOut(
                 account_id=acc.account_id,
@@ -1027,16 +1064,26 @@ def periodic_accounts(db: Session = Depends(get_db)) -> list[PeriodicAccountOut]
                 abbr=acc.abbr,
                 nickname=acc.nickname,
                 phone_number=acc.phone_number,
-                version_matrix_soldier=acc_flags.get("version_matrix_soldier", False),
-                version_small_coral_exchange=acc_flags.get("version_small_coral_exchange", False),
-                version_hologram_challenge=acc_flags.get("version_hologram_challenge", False),
-                version_echo_template_adjust=acc_flags.get("version_echo_template_adjust", False),
-                hv_trial_character=acc_flags.get("hv_trial_character", False),
-                monthly_tower_exchange=acc_flags.get("monthly_tower_exchange", False),
-                four_week_tower=acc_flags.get("four_week_tower", False),
-                four_week_ruins=acc_flags.get("four_week_ruins", False),
-                range_lahailuo_cube=acc_flags.get("range_lahailuo_cube", False),
-                range_music_game=acc_flags.get("range_music_game", False),
+                version_matrix_soldier=version_matrix_soldier_status in DONE_STATUSES,
+                version_matrix_soldier_status=version_matrix_soldier_status,
+                version_small_coral_exchange=version_small_coral_exchange_status in DONE_STATUSES,
+                version_small_coral_exchange_status=version_small_coral_exchange_status,
+                version_hologram_challenge=version_hologram_challenge_status in DONE_STATUSES,
+                version_hologram_challenge_status=version_hologram_challenge_status,
+                version_echo_template_adjust=version_echo_template_adjust_status in DONE_STATUSES,
+                version_echo_template_adjust_status=version_echo_template_adjust_status,
+                hv_trial_character=hv_trial_character_status in DONE_STATUSES,
+                hv_trial_character_status=hv_trial_character_status,
+                monthly_tower_exchange=monthly_tower_exchange_status in DONE_STATUSES,
+                monthly_tower_exchange_status=monthly_tower_exchange_status,
+                four_week_tower=four_week_tower_status in DONE_STATUSES,
+                four_week_tower_status=four_week_tower_status,
+                four_week_ruins=four_week_ruins_status in DONE_STATUSES,
+                four_week_ruins_status=four_week_ruins_status,
+                range_lahailuo_cube=range_lahailuo_cube_status in DONE_STATUSES,
+                range_lahailuo_cube_status=range_lahailuo_cube_status,
+                range_music_game=range_music_game_status in DONE_STATUSES,
+                range_music_game_status=range_music_game_status,
             )
         )
 

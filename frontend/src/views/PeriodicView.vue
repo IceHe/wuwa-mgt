@@ -20,6 +20,7 @@
           <tr
             v-for="acc in sortedAccounts"
             :key="acc.id"
+            @click="toggleHighlight(acc.id)"
             :class="{ edited: isHighlighted(acc.id) }"
           >
             <td>
@@ -34,101 +35,81 @@
             </td>
             <td>
               <div class="status-wrap">
-                <label :class="['status-item', 'flag-version-matrix', { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
-                  <input
-                    type="checkbox"
-                    v-model="versionMatrixSoldierInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'version_matrix_soldier', !!versionMatrixSoldierInput[acc.id])"
-                  />
-                  <span>矩阵叠兵</span>
+                <label :class="['status-item', 'flag-version-matrix', statusClass(versionMatrixSoldierInput[acc.id]), { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_matrix_soldier')">
+                    {{ statusLabel(versionMatrixSoldierInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(versionMatrixSoldierInput[acc.id]) }]">矩阵叠兵</span>
                 </label>
-                <label :class="['status-item', 'flag-version-coral', { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
-                  <input
-                    type="checkbox"
-                    v-model="versionSmallCoralInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'version_small_coral_exchange', !!versionSmallCoralInput[acc.id])"
-                  />
-                  <span>小珊瑚兑换</span>
+                <label :class="['status-item', 'flag-version-coral', statusClass(versionSmallCoralInput[acc.id]), { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_small_coral_exchange')">
+                    {{ statusLabel(versionSmallCoralInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(versionSmallCoralInput[acc.id]) }]">小珊瑚兑换</span>
                 </label>
-                <label :class="['status-item', 'flag-version-hologram', { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
-                  <input
-                    type="checkbox"
-                    v-model="versionHologramInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'version_hologram_challenge', !!versionHologramInput[acc.id])"
-                  />
-                  <span>全息挑战</span>
+                <label :class="['status-item', 'flag-version-hologram', statusClass(versionHologramInput[acc.id]), { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_hologram_challenge')">
+                    {{ statusLabel(versionHologramInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(versionHologramInput[acc.id]) }]">全息挑战</span>
                 </label>
-                <label :class="['status-item', 'flag-version-template', { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
-                  <input
-                    type="checkbox"
-                    v-model="versionEchoTemplateInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'version_echo_template_adjust', !!versionEchoTemplateInput[acc.id])"
-                  />
-                  <span>声骸模板调整</span>
+                <label :class="['status-item', 'flag-version-template', statusClass(versionEchoTemplateInput[acc.id]), { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_echo_template_adjust')">
+                    {{ statusLabel(versionEchoTemplateInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(versionEchoTemplateInput[acc.id]) }]">声骸模板调整</span>
                 </label>
               </div>
             </td>
             <td>
               <div class="status-wrap">
-                <label :class="['status-item', 'flag-hv-trial', { 'flag-all-done': allDoneFlags.hv_trial_character }]">
-                  <input
-                    type="checkbox"
-                    v-model="hvTrialCharacterInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'hv_trial_character', !!hvTrialCharacterInput[acc.id])"
-                  />
-                  <span>角色试用</span>
+                <label :class="['status-item', 'flag-hv-trial', statusClass(hvTrialCharacterInput[acc.id]), { 'flag-all-done': allDoneFlags.hv_trial_character }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'hv_trial_character')">
+                    {{ statusLabel(hvTrialCharacterInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(hvTrialCharacterInput[acc.id]) }]">角色试用</span>
                 </label>
               </div>
             </td>
             <td>
               <div class="status-wrap">
-                <label :class="['status-item', 'flag-monthly-tower', { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
-                  <input
-                    type="checkbox"
-                    v-model="monthlyTowerExchangeInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'monthly_tower_exchange', !!monthlyTowerExchangeInput[acc.id])"
-                  />
-                  <span>深塔兑换所</span>
+                <label :class="['status-item', 'flag-monthly-tower', statusClass(monthlyTowerExchangeInput[acc.id]), { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'monthly_tower_exchange')">
+                    {{ statusLabel(monthlyTowerExchangeInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(monthlyTowerExchangeInput[acc.id]) }]">深塔兑换所</span>
                 </label>
               </div>
             </td>
             <td>
               <div class="status-wrap">
-                <label :class="['status-item', 'flag-fw-tower', { 'flag-all-done': allDoneFlags.four_week_tower }]">
-                  <input
-                    type="checkbox"
-                    v-model="fourWeekTowerInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'four_week_tower', !!fourWeekTowerInput[acc.id])"
-                  />
-                  <span>深塔</span>
+                <label :class="['status-item', 'flag-fw-tower', statusClass(fourWeekTowerInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_tower }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'four_week_tower')">
+                    {{ statusLabel(fourWeekTowerInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(fourWeekTowerInput[acc.id]) }]">深塔</span>
                 </label>
-                <label :class="['status-item', 'flag-fw-ruins', { 'flag-all-done': allDoneFlags.four_week_ruins }]">
-                  <input
-                    type="checkbox"
-                    v-model="fourWeekRuinsInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'four_week_ruins', !!fourWeekRuinsInput[acc.id])"
-                  />
-                  <span>海墟</span>
+                <label :class="['status-item', 'flag-fw-ruins', statusClass(fourWeekRuinsInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_ruins }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'four_week_ruins')">
+                    {{ statusLabel(fourWeekRuinsInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(fourWeekRuinsInput[acc.id]) }]">海墟</span>
                 </label>
               </div>
             </td>
             <td>
               <div class="status-wrap">
-                <label :class="['status-item', 'flag-range-lahailuo', { 'flag-all-done': allDoneFlags.range_lahailuo_cube }]">
-                  <input
-                    type="checkbox"
-                    v-model="rangeLahailuoCubeInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'range_lahailuo_cube', !!rangeLahailuoCubeInput[acc.id])"
-                  />
-                  <span>填方块</span>
+                <label :class="['status-item', 'flag-range-lahailuo', statusClass(rangeLahailuoCubeInput[acc.id]), { 'flag-all-done': allDoneFlags.range_lahailuo_cube }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'range_lahailuo_cube')">
+                    {{ statusLabel(rangeLahailuoCubeInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(rangeLahailuoCubeInput[acc.id]) }]">填方块</span>
                 </label>
-                <label :class="['status-item', 'flag-range-music', { 'flag-all-done': allDoneFlags.range_music_game }]">
-                  <input
-                    type="checkbox"
-                    v-model="rangeMusicGameInput[acc.id]"
-                    @change="updateCheckin(acc.id, 'range_music_game', !!rangeMusicGameInput[acc.id])"
-                  />
-                  <span>音游</span>
+                <label :class="['status-item', 'flag-range-music', statusClass(rangeMusicGameInput[acc.id]), { 'flag-all-done': allDoneFlags.range_music_game }]">
+                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'range_music_game')">
+                    {{ statusLabel(rangeMusicGameInput[acc.id]) }}
+                  </button>
+                  <span :class="['status-label', { completed: isCompletedStatus(rangeMusicGameInput[acc.id]) }]">音游</span>
                 </label>
               </div>
             </td>
@@ -144,6 +125,7 @@ import { computed, onMounted, ref } from 'vue'
 import { api } from '../api'
 
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_last_edit_map_v1'
+const STATUS_FLOW = ['todo', 'done', 'skipped']
 const accounts = ref([])
 const highlightedAccountId = ref(null)
 const lastEditedMap = ref({})
@@ -164,16 +146,16 @@ const sortedAccounts = computed(() => {
 })
 
 const allDoneFlags = computed(() => ({
-  version_matrix_soldier: isAllChecked(versionMatrixSoldierInput.value),
-  version_small_coral_exchange: isAllChecked(versionSmallCoralInput.value),
-  version_hologram_challenge: isAllChecked(versionHologramInput.value),
-  version_echo_template_adjust: isAllChecked(versionEchoTemplateInput.value),
-  hv_trial_character: isAllChecked(hvTrialCharacterInput.value),
-  monthly_tower_exchange: isAllChecked(monthlyTowerExchangeInput.value),
-  four_week_tower: isAllChecked(fourWeekTowerInput.value),
-  four_week_ruins: isAllChecked(fourWeekRuinsInput.value),
-  range_lahailuo_cube: isAllChecked(rangeLahailuoCubeInput.value),
-  range_music_game: isAllChecked(rangeMusicGameInput.value),
+  version_matrix_soldier: isAllCompleted(versionMatrixSoldierInput.value),
+  version_small_coral_exchange: isAllCompleted(versionSmallCoralInput.value),
+  version_hologram_challenge: isAllCompleted(versionHologramInput.value),
+  version_echo_template_adjust: isAllCompleted(versionEchoTemplateInput.value),
+  hv_trial_character: isAllCompleted(hvTrialCharacterInput.value),
+  monthly_tower_exchange: isAllCompleted(monthlyTowerExchangeInput.value),
+  four_week_tower: isAllCompleted(fourWeekTowerInput.value),
+  four_week_ruins: isAllCompleted(fourWeekRuinsInput.value),
+  range_lahailuo_cube: isAllCompleted(rangeLahailuoCubeInput.value),
+  range_music_game: isAllCompleted(rangeMusicGameInput.value),
 }))
 
 function normalizedId(id) {
@@ -185,10 +167,54 @@ function isHighlighted(id) {
   return normalizedId(id) === normalizedId(highlightedAccountId.value)
 }
 
-function isAllChecked(map) {
+function toggleHighlight(id) {
+  const key = normalizedId(id)
+  highlightedAccountId.value = normalizedId(highlightedAccountId.value) === key ? null : key
+}
+
+function normalizeStatus(status, boolFallback = false) {
+  if (typeof status === 'string' && STATUS_FLOW.includes(status)) return status
+  return boolFallback ? 'done' : 'todo'
+}
+
+function isCompletedStatus(status) {
+  const normalized = normalizeStatus(status)
+  return normalized === 'done' || normalized === 'skipped'
+}
+
+function statusClass(status) {
+  return `status-${normalizeStatus(status)}`
+}
+
+function statusLabel(status) {
+  const normalized = normalizeStatus(status)
+  if (normalized === 'done') return 'Done'
+  if (normalized === 'skipped') return 'Skip'
+  return 'Todo'
+}
+
+function nextStatus(status) {
+  const idx = STATUS_FLOW.indexOf(normalizeStatus(status))
+  return STATUS_FLOW[(idx + 1) % STATUS_FLOW.length]
+}
+
+function isAllCompleted(map) {
   const ids = accounts.value.map((acc) => normalizedId(acc.id))
   if (!ids.length) return false
-  return ids.every((id) => !!map[id])
+  return ids.every((id) => isCompletedStatus(map[id]))
+}
+
+function statusMapByKey(flagKey) {
+  if (flagKey === 'version_matrix_soldier') return versionMatrixSoldierInput.value
+  if (flagKey === 'version_small_coral_exchange') return versionSmallCoralInput.value
+  if (flagKey === 'version_hologram_challenge') return versionHologramInput.value
+  if (flagKey === 'version_echo_template_adjust') return versionEchoTemplateInput.value
+  if (flagKey === 'hv_trial_character') return hvTrialCharacterInput.value
+  if (flagKey === 'monthly_tower_exchange') return monthlyTowerExchangeInput.value
+  if (flagKey === 'four_week_tower') return fourWeekTowerInput.value
+  if (flagKey === 'four_week_ruins') return fourWeekRuinsInput.value
+  if (flagKey === 'range_lahailuo_cube') return rangeLahailuoCubeInput.value
+  return rangeMusicGameInput.value
 }
 
 function phoneTail(phoneNumber) {
@@ -200,23 +226,31 @@ function phoneTail(phoneNumber) {
 async function refresh() {
   accounts.value = await api.listPeriodicAccounts()
   for (const acc of accounts.value) {
-    versionMatrixSoldierInput.value[acc.id] = !!acc.version_matrix_soldier
-    versionSmallCoralInput.value[acc.id] = !!acc.version_small_coral_exchange
-    versionHologramInput.value[acc.id] = !!acc.version_hologram_challenge
-    versionEchoTemplateInput.value[acc.id] = !!acc.version_echo_template_adjust
-    hvTrialCharacterInput.value[acc.id] = !!acc.hv_trial_character
-    monthlyTowerExchangeInput.value[acc.id] = !!acc.monthly_tower_exchange
-    fourWeekTowerInput.value[acc.id] = !!acc.four_week_tower
-    fourWeekRuinsInput.value[acc.id] = !!acc.four_week_ruins
-    rangeLahailuoCubeInput.value[acc.id] = !!acc.range_lahailuo_cube
-    rangeMusicGameInput.value[acc.id] = !!acc.range_music_game
+    versionMatrixSoldierInput.value[acc.id] = normalizeStatus(acc.version_matrix_soldier_status, acc.version_matrix_soldier)
+    versionSmallCoralInput.value[acc.id] = normalizeStatus(acc.version_small_coral_exchange_status, acc.version_small_coral_exchange)
+    versionHologramInput.value[acc.id] = normalizeStatus(acc.version_hologram_challenge_status, acc.version_hologram_challenge)
+    versionEchoTemplateInput.value[acc.id] = normalizeStatus(acc.version_echo_template_adjust_status, acc.version_echo_template_adjust)
+    hvTrialCharacterInput.value[acc.id] = normalizeStatus(acc.hv_trial_character_status, acc.hv_trial_character)
+    monthlyTowerExchangeInput.value[acc.id] = normalizeStatus(acc.monthly_tower_exchange_status, acc.monthly_tower_exchange)
+    fourWeekTowerInput.value[acc.id] = normalizeStatus(acc.four_week_tower_status, acc.four_week_tower)
+    fourWeekRuinsInput.value[acc.id] = normalizeStatus(acc.four_week_ruins_status, acc.four_week_ruins)
+    rangeLahailuoCubeInput.value[acc.id] = normalizeStatus(acc.range_lahailuo_cube_status, acc.range_lahailuo_cube)
+    rangeMusicGameInput.value[acc.id] = normalizeStatus(acc.range_music_game_status, acc.range_music_game)
   }
   syncHighlightedAccountId()
 }
 
-async function updateCheckin(id, flagKey, isDone) {
+async function cycleCheckin(id, flagKey) {
+  const map = statusMapByKey(flagKey)
+  const current = map[id]
+  const next = nextStatus(current)
+  map[id] = next
+  await updateCheckin(id, flagKey, next)
+}
+
+async function updateCheckin(id, flagKey, status) {
   try {
-    await api.setCheckin(id, flagKey, isDone)
+    await api.setCheckin(id, flagKey, status)
     markEdited(id)
   } catch (err) {
     alert(`保存失败：${err.message || '请稍后重试'}`)

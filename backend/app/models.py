@@ -61,6 +61,7 @@ class AccountCheckin(Base):
     period_type: Mapped[str] = mapped_column(String(16), default="daily", index=True)
     period_key: Mapped[str] = mapped_column(String(32), default="", index=True)
     flag_key: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="todo", index=True)
     is_done: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
