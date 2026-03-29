@@ -44,8 +44,15 @@ class AccountOut(AccountBase):
 
 
 class EnergySetIn(BaseModel):
-    current_waveplate: int = Field(default=0, ge=0, le=240)
+    current_waveplate: int | None = Field(default=None, ge=0, le=240)
     current_waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
+    full_waveplate_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_energy_set_mode(self):
+        if self.current_waveplate is None and self.full_waveplate_at is None:
+            raise ValueError("current_waveplate or full_waveplate_at is required")
+        return self
 
 
 class EnergySpendIn(BaseModel):
@@ -188,6 +195,8 @@ class PeriodicAccountOut(BaseModel):
     abbr: str
     nickname: str
     phone_number: str | None
+    created_at: datetime
+    updated_at: datetime
     version_matrix_soldier: bool = False
     version_matrix_soldier_status: str = "todo"
     version_small_coral_exchange: bool = False

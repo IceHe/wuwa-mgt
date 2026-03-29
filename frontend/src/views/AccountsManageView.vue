@@ -2,7 +2,17 @@
   <section class="panel">
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
       <h2 style="margin: 0">账号列表</h2>
-      <button class="primary" @click="openCreateModal">创建账号</button>
+      <div class="actions" style="align-items: center; gap: 12px">
+        <label style="max-width: 220px">
+          排序方式
+          <select v-model="sortMode">
+            <option value="abbr">账户缩写</option>
+            <option value="created_desc">最近创建</option>
+            <option value="updated_desc">最近修改</option>
+          </select>
+        </label>
+        <button class="primary" @click="openCreateModal">创建账号</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table class="manage-table">
@@ -16,7 +26,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="acc in accounts" :key="acc.id" :class="{ inactive: !acc.is_active }">
+          <tr v-for="acc in sortedAccounts" :key="acc.id" :class="{ inactive: !acc.is_active }">
             <td>
               <div class="account-main">
                 <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
@@ -94,12 +104,13 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
 
 const router = useRouter()
 const accounts = ref([])
+const sortMode = ref('abbr')
 const copiedAccountId = ref(null)
 const showCreateModal = ref(false)
 const form = reactive({
@@ -111,6 +122,20 @@ const form = reactive({
   last_waveplate: 0,
   waveplate_crystal: 0,
   is_active: true,
+})
+
+const sortedAccounts = computed(() => {
+  const rows = [...accounts.value]
+  if (sortMode.value === 'created_desc') {
+    rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    return rows
+  }
+  if (sortMode.value === 'updated_desc') {
+    rows.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    return rows
+  }
+  rows.sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+  return rows
 })
 
 async function refresh() {

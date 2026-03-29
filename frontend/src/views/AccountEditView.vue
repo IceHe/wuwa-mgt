@@ -59,6 +59,16 @@
       <button class="primary" @click="setCurrentEnergy">校准当前体力</button>
       <span v-if="energySaved" class="meta">已校准</span>
     </div>
+    <div class="actions" style="margin-top: 8px">
+      <input
+        v-model="manualFullWaveplateAt"
+        type="datetime-local"
+        step="1"
+        placeholder="输入满体力时间(精确到秒)"
+        style="max-width: 240px"
+      />
+      <button class="primary" @click="setByFullWaveplateTime">按满体时间倒推</button>
+    </div>
 
     <hr style="border: none; border-top: 1px solid #dce3f1; margin: 14px 0" />
     <h3>删除账号</h3>
@@ -81,6 +91,7 @@ const saved = ref(false)
 const energySaved = ref(false)
 const manualCurrentEnergy = ref(0)
 const manualCurrentCrystal = ref(null)
+const manualFullWaveplateAt = ref('')
 
 const form = reactive({
   phone_number: '',
@@ -132,6 +143,37 @@ async function setCurrentEnergy() {
   }
   energySaved.value = false
   await api.setWaveplate(id, value, crystal)
+  energySaved.value = true
+  await load()
+}
+
+async function setByFullWaveplateTime() {
+  const fullAtRaw = String(manualFullWaveplateAt.value || '').trim()
+  if (!fullAtRaw) {
+    alert('请先输入满体力时间')
+    return
+  }
+  const normalizedFullAtBase = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(fullAtRaw) ? `${fullAtRaw}:00` : fullAtRaw
+  const normalizedFullAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(normalizedFullAtBase)
+    ? `${normalizedFullAtBase}+08:00`
+    : normalizedFullAtBase
+  const fullAt = new Date(normalizedFullAt)
+  if (Number.isNaN(fullAt.getTime())) {
+    alert('满体力时间格式无效')
+    return
+  }
+  const deltaSeconds = Math.floor((fullAt.getTime() - Date.now()) / 1000)
+  const missing = deltaSeconds <= 0 ? 0 : Math.ceil(deltaSeconds / 360)
+  const waveplate = Math.max(0, 240 - missing)
+  const crystalRaw = manualCurrentCrystal.value
+  const crystal =
+    crystalRaw === '' || crystalRaw === undefined || crystalRaw === null ? null : Number(crystalRaw)
+  if (crystal !== null && (Number.isNaN(crystal) || crystal < 0 || crystal > 480)) {
+    alert('体力结晶范围应为 0~480')
+    return
+  }
+  energySaved.value = false
+  await api.setWaveplate(id, waveplate, crystal)
   energySaved.value = true
   await load()
 }

@@ -2,7 +2,16 @@
   <section class="panel">
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
       <h2 style="margin: 0">周期活动</h2>
-      <button type="button" @click="refresh">刷新</button>
+      <div class="actions" style="align-items: center">
+        <label style="max-width: 220px">
+          排序方式
+          <select v-model="sortMode">
+            <option value="abbr">账户缩写</option>
+            <option value="created_desc">最近创建</option>
+            <option value="recent_edit">最近修改</option>
+          </select>
+        </label>
+      </div>
     </div>
     <div class="table-wrap">
       <table class="periodic-table">
@@ -142,6 +151,7 @@ import { api } from '../api'
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_last_edit_map_v1'
 const STATUS_FLOW = ['todo', 'done', 'skipped']
 const accounts = ref([])
+const sortMode = ref('abbr')
 const highlightedAccountId = ref(null)
 const lastEditedMap = ref({})
 
@@ -157,7 +167,21 @@ const rangeLahailuoCubeInput = ref({})
 const rangeMusicGameInput = ref({})
 
 const sortedAccounts = computed(() => {
-  return [...accounts.value]
+  const rows = [...accounts.value]
+  if (sortMode.value === 'created_desc') {
+    rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    return rows
+  }
+  if (sortMode.value === 'recent_edit') {
+    rows.sort((a, b) => {
+      const ta = Number(lastEditedMap.value[normalizedId(a.id)] || 0)
+      const tb = Number(lastEditedMap.value[normalizedId(b.id)] || 0)
+      return tb - ta
+    })
+    return rows
+  }
+  rows.sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+  return rows
 })
 
 const allDoneFlags = computed(() => ({

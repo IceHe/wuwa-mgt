@@ -18,9 +18,10 @@ from .energy import (
     add_resources,
     clamp_waveplate,
     clamp_waveplate_crystal,
-    minutes_to_waveplate_full,
     normalize_resources,
     recover_resources,
+    reverse_waveplate_from_full_time,
+    seconds_to_waveplate_full,
     spend_resources,
     warn_level,
 )
@@ -49,6 +50,7 @@ from .schemas import (
 
 load_dotenv()
 APP_TZ = os.getenv("APP_TZ", "Asia/Shanghai")
+RESET_HOUR = int(os.getenv("RESET_HOUR", "4"))
 AUTH_BASE_URL = os.getenv("AUTH_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
 AUTH_REQUIRED_PERMISSION = os.getenv("AUTH_REQUIRED_PERMISSION", "manage")
 AUTH_VALIDATE_TIMEOUT_SECONDS = float(os.getenv("AUTH_VALIDATE_TIMEOUT_SECONDS", "3"))
@@ -372,6 +374,22 @@ def today_tz() -> date:
     return now_tz().date()
 
 
+def reset_day_tz(now: datetime | None = None) -> date:
+    current = now or now_tz()
+    if not (0 <= RESET_HOUR <= 23):
+        raise ValueError("RESET_HOUR must be 0..23")
+    if current.hour < RESET_HOUR:
+        return (current - timedelta(days=1)).date()
+    return current.date()
+
+
+def to_app_tz(dt: datetime) -> datetime:
+    app_zone = ZoneInfo(APP_TZ)
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        return dt.replace(tzinfo=app_zone)
+    return dt.astimezone(app_zone)
+
+
 def monday_of_week(day: date) -> date:
     return day - timedelta(days=day.weekday())
 
@@ -428,7 +446,8 @@ def energy_payload(account: Account, now: datetime) -> EnergyOut:
         account.last_waveplate_updated_at,
         now,
     )
-    to_full = minutes_to_waveplate_full(current_wp)
+    to_full_seconds = seconds_to_waveplate_full(account.last_waveplate, account.last_waveplate_updated_at, now)
+    to_full = (to_full_seconds + 59) // 60
     return EnergyOut(
         account_id=account.account_id,
         id=account.id,
@@ -437,7 +456,7 @@ def energy_payload(account: Account, now: datetime) -> EnergyOut:
         last_waveplate=account.last_waveplate,
         last_waveplate_updated_at=account.last_waveplate_updated_at,
         waveplate_full_in_minutes=to_full,
-        eta_waveplate_full=now + timedelta(minutes=to_full),
+        eta_waveplate_full=now + timedelta(seconds=to_full_seconds),
         warn_level=warn_level(current_wp),
     )
 
@@ -453,6 +472,30 @@ def snapshot_resources_for_now(account: Account, now: datetime) -> tuple[int, in
     account.waveplate_crystal = current_crystal
     account.last_waveplate_updated_at = now
     return current_wp, current_crystal
+
+
+def apply_energy_set(account: Account, payload: EnergySetIn, now: datetime) -> None:
+    _, current_crystal = recover_resources(
+        account.last_waveplate,
+        account.waveplate_crystal,
+        account.last_waveplate_updated_at,
+        now,
+    )
+    if payload.full_waveplate_at is not None:
+        full_at = to_app_tz(payload.full_waveplate_at)
+        try:
+            target_wp, progressed_seconds = reverse_waveplate_from_full_time(now, full_at)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        account.last_waveplate = target_wp
+        account.last_waveplate_updated_at = now - timedelta(seconds=progressed_seconds)
+    else:
+        account.last_waveplate = clamp_waveplate(payload.current_waveplate or 0)
+        account.last_waveplate_updated_at = now
+    if payload.current_waveplate_crystal is None:
+        account.waveplate_crystal = current_crystal
+    else:
+        account.waveplate_crystal = clamp_waveplate_crystal(payload.current_waveplate_crystal)
 
 
 def get_account_by_id(db: Session, game_id: str) -> Account:
@@ -622,7 +665,7 @@ def set_daily_flag_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depe
     if normalized_key not in ALLOWED_FLAG_KEYS:
         raise HTTPException(status_code=400, detail=f"unsupported flag_key: {payload.flag_key}")
     account = get_account_by_id(db, id)
-    period_type, period_key, status_date = resolve_period(normalized_key, today_tz())
+    period_type, period_key, status_date = resolve_period(normalized_key, reset_day_tz())
     item = db.scalar(
         select(AccountCheckin).where(
             AccountCheckin.account_id == account.account_id,
@@ -748,18 +791,7 @@ def set_current_waveplate(account_id: int, payload: EnergySetIn, db: Session = D
         raise HTTPException(status_code=404, detail="account not found")
 
     now = now_tz()
-    _, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
-        now,
-    )
-    account.last_waveplate = clamp_waveplate(payload.current_waveplate)
-    if payload.current_waveplate_crystal is None:
-        account.waveplate_crystal = current_crystal
-    else:
-        account.waveplate_crystal = clamp_waveplate_crystal(payload.current_waveplate_crystal)
-    account.last_waveplate_updated_at = now
+    apply_energy_set(account, payload, now)
 
     db.commit()
     db.refresh(account)
@@ -770,18 +802,7 @@ def set_current_waveplate(account_id: int, payload: EnergySetIn, db: Session = D
 def set_current_waveplate_by_id(id: str, payload: EnergySetIn, db: Session = Depends(get_db)) -> EnergyOut:
     account = get_account_by_id(db, id)
     now = now_tz()
-    _, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
-        now,
-    )
-    account.last_waveplate = clamp_waveplate(payload.current_waveplate)
-    if payload.current_waveplate_crystal is None:
-        account.waveplate_crystal = current_crystal
-    else:
-        account.waveplate_crystal = clamp_waveplate_crystal(payload.current_waveplate_crystal)
-    account.last_waveplate_updated_at = now
+    apply_energy_set(account, payload, now)
     db.commit()
     db.refresh(account)
     return energy_payload(account, now)
@@ -922,7 +943,7 @@ def gain_energy_by_feature(feature_id: str, payload: EnergyGainIn, db: Session =
 @app.get("/dashboard/accounts", response_model=list[DashboardAccountOut])
 def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOut]:
     now = now_tz()
-    today = now.date()
+    today = reset_day_tz(now)
     week_key = weekly_period_key(today)
     today_key = today.isoformat()
     accounts = db.scalars(select(Account).where(Account.is_active.is_(True)).order_by(Account.abbr)).all()
@@ -953,7 +974,8 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
             acc.last_waveplate_updated_at,
             now,
         )
-        to_full = minutes_to_waveplate_full(current_wp)
+        to_full_seconds = seconds_to_waveplate_full(acc.last_waveplate, acc.last_waveplate_updated_at, now)
+        to_full = (to_full_seconds + 59) // 60
         acc_flags = flags_map.get(acc.account_id, {})
         daily_task_status = acc_flags.get("daily_task", "todo")
         daily_nest_status = acc_flags.get("daily_nest", "todo")
@@ -994,7 +1016,7 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 weekly_door_status=weekly_door_status,
                 weekly_boss_status=weekly_boss_status,
                 waveplate_full_in_minutes=to_full,
-                eta_waveplate_full=now + timedelta(minutes=to_full),
+                eta_waveplate_full=now + timedelta(seconds=to_full_seconds),
                 todo_count=todo_count or 0,
                 done_count=done_count or 0,
             )
@@ -1062,6 +1084,8 @@ def periodic_accounts(db: Session = Depends(get_db)) -> list[PeriodicAccountOut]
                 abbr=acc.abbr,
                 nickname=acc.nickname,
                 phone_number=acc.phone_number,
+                created_at=acc.created_at,
+                updated_at=acc.updated_at,
                 version_matrix_soldier=version_matrix_soldier_status in DONE_STATUSES,
                 version_matrix_soldier_status=version_matrix_soldier_status,
                 version_small_coral_exchange=version_small_coral_exchange_status in DONE_STATUSES,
