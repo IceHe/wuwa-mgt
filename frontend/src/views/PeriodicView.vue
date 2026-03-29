@@ -6,14 +6,39 @@
     </div>
     <div class="table-wrap">
       <table class="periodic-table">
+        <colgroup>
+          <col class="col-id" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+          <col class="col-flag" />
+        </colgroup>
         <thead>
+          <tr class="group-row">
+            <th rowspan="2" class="group-id">ID / 尾号 / 昵称</th>
+            <th colspan="4" class="group-fv">每版本</th>
+            <th colspan="1" class="group-hv">每半版本</th>
+            <th colspan="1" class="group-monthly">每月</th>
+            <th colspan="2" class="group-fourweek">每四周</th>
+            <th colspan="2" class="group-range">限时</th>
+          </tr>
           <tr>
-            <th>ID / 尾号 / 昵称</th>
-            <th>每版本</th>
-            <th>每半版本</th>
-            <th>每月</th>
-            <th>每四周</th>
-            <th>限时</th>
+            <th class="col-version-matrix">终焉矩阵</th>
+            <th class="col-version-coral">小珊瑚兑换</th>
+            <th class="col-version-hologram">全息挑战</th>
+            <th class="col-version-template">声骸模板</th>
+            <th class="col-hv-trial">角色试用</th>
+            <th class="col-monthly-tower">深塔兑换所</th>
+            <th class="col-fw-tower">深塔</th>
+            <th class="col-fw-ruins">海墟</th>
+            <th class="col-range-lahailuo">填方块</th>
+            <th class="col-range-music">音游</th>
           </tr>
         </thead>
         <tbody>
@@ -34,84 +59,74 @@
               </div>
             </td>
             <td>
-              <div class="status-wrap">
-                <label :class="['status-item', 'flag-version-matrix', statusClass(versionMatrixSoldierInput[acc.id]), { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_matrix_soldier')">
-                    {{ statusLabel(versionMatrixSoldierInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(versionMatrixSoldierInput[acc.id]) }]">矩阵叠兵</span>
-                </label>
-                <label :class="['status-item', 'flag-version-coral', statusClass(versionSmallCoralInput[acc.id]), { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_small_coral_exchange')">
-                    {{ statusLabel(versionSmallCoralInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(versionSmallCoralInput[acc.id]) }]">小珊瑚兑换</span>
-                </label>
-                <label :class="['status-item', 'flag-version-hologram', statusClass(versionHologramInput[acc.id]), { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_hologram_challenge')">
-                    {{ statusLabel(versionHologramInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(versionHologramInput[acc.id]) }]">全息挑战</span>
-                </label>
-                <label :class="['status-item', 'flag-version-template', statusClass(versionEchoTemplateInput[acc.id]), { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'version_echo_template_adjust')">
-                    {{ statusLabel(versionEchoTemplateInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(versionEchoTemplateInput[acc.id]) }]">声骸模板调整</span>
-                </label>
-              </div>
+              <label :class="['status-item', 'flag-version-matrix', statusClass(versionMatrixSoldierInput[acc.id]), { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
+                <button type="button" class="status-toggle" :title="statusLabel(versionMatrixSoldierInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_matrix_soldier')">
+                  {{ statusLabel(versionMatrixSoldierInput[acc.id]) }}
+                </button>
+              </label>
             </td>
             <td>
-              <div class="status-wrap">
-                <label :class="['status-item', 'flag-hv-trial', statusClass(hvTrialCharacterInput[acc.id]), { 'flag-all-done': allDoneFlags.hv_trial_character }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'hv_trial_character')">
-                    {{ statusLabel(hvTrialCharacterInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(hvTrialCharacterInput[acc.id]) }]">角色试用</span>
-                </label>
-              </div>
+              <label :class="['status-item', 'flag-version-coral', statusClass(versionSmallCoralInput[acc.id]), { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
+                <button type="button" class="status-toggle" :title="statusLabel(versionSmallCoralInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_small_coral_exchange')">
+                  {{ statusLabel(versionSmallCoralInput[acc.id]) }}
+                </button>
+              </label>
             </td>
             <td>
-              <div class="status-wrap">
-                <label :class="['status-item', 'flag-monthly-tower', statusClass(monthlyTowerExchangeInput[acc.id]), { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'monthly_tower_exchange')">
-                    {{ statusLabel(monthlyTowerExchangeInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(monthlyTowerExchangeInput[acc.id]) }]">深塔兑换所</span>
-                </label>
-              </div>
+              <label :class="['status-item', 'flag-version-hologram', statusClass(versionHologramInput[acc.id]), { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
+                <button type="button" class="status-toggle" :title="statusLabel(versionHologramInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_hologram_challenge')">
+                  {{ statusLabel(versionHologramInput[acc.id]) }}
+                </button>
+              </label>
             </td>
             <td>
-              <div class="status-wrap">
-                <label :class="['status-item', 'flag-fw-tower', statusClass(fourWeekTowerInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_tower }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'four_week_tower')">
-                    {{ statusLabel(fourWeekTowerInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(fourWeekTowerInput[acc.id]) }]">深塔</span>
-                </label>
-                <label :class="['status-item', 'flag-fw-ruins', statusClass(fourWeekRuinsInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_ruins }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'four_week_ruins')">
-                    {{ statusLabel(fourWeekRuinsInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(fourWeekRuinsInput[acc.id]) }]">海墟</span>
-                </label>
-              </div>
+              <label :class="['status-item', 'flag-version-template', statusClass(versionEchoTemplateInput[acc.id]), { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
+                <button type="button" class="status-toggle" :title="statusLabel(versionEchoTemplateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_echo_template_adjust')">
+                  {{ statusLabel(versionEchoTemplateInput[acc.id]) }}
+                </button>
+              </label>
             </td>
             <td>
-              <div class="status-wrap">
-                <label :class="['status-item', 'flag-range-lahailuo', statusClass(rangeLahailuoCubeInput[acc.id]), { 'flag-all-done': allDoneFlags.range_lahailuo_cube }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'range_lahailuo_cube')">
-                    {{ statusLabel(rangeLahailuoCubeInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(rangeLahailuoCubeInput[acc.id]) }]">填方块</span>
-                </label>
-                <label :class="['status-item', 'flag-range-music', statusClass(rangeMusicGameInput[acc.id]), { 'flag-all-done': allDoneFlags.range_music_game }]">
-                  <button type="button" class="status-toggle" @click="cycleCheckin(acc.id, 'range_music_game')">
-                    {{ statusLabel(rangeMusicGameInput[acc.id]) }}
-                  </button>
-                  <span :class="['status-label', { completed: isCompletedStatus(rangeMusicGameInput[acc.id]) }]">音游</span>
-                </label>
-              </div>
+              <label :class="['status-item', 'flag-hv-trial', statusClass(hvTrialCharacterInput[acc.id]), { 'flag-all-done': allDoneFlags.hv_trial_character }]">
+                <button type="button" class="status-toggle" :title="statusLabel(hvTrialCharacterInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'hv_trial_character')">
+                  {{ statusLabel(hvTrialCharacterInput[acc.id]) }}
+                </button>
+              </label>
+            </td>
+            <td>
+              <label :class="['status-item', 'flag-monthly-tower', statusClass(monthlyTowerExchangeInput[acc.id]), { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
+                <button type="button" class="status-toggle" :title="statusLabel(monthlyTowerExchangeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'monthly_tower_exchange')">
+                  {{ statusLabel(monthlyTowerExchangeInput[acc.id]) }}
+                </button>
+              </label>
+            </td>
+            <td>
+              <label :class="['status-item', 'flag-fw-tower', statusClass(fourWeekTowerInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_tower }]">
+                <button type="button" class="status-toggle" :title="statusLabel(fourWeekTowerInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_tower')">
+                  {{ statusLabel(fourWeekTowerInput[acc.id]) }}
+                </button>
+              </label>
+            </td>
+            <td>
+              <label :class="['status-item', 'flag-fw-ruins', statusClass(fourWeekRuinsInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_ruins }]">
+                <button type="button" class="status-toggle" :title="statusLabel(fourWeekRuinsInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_ruins')">
+                  {{ statusLabel(fourWeekRuinsInput[acc.id]) }}
+                </button>
+              </label>
+            </td>
+            <td>
+              <label :class="['status-item', 'flag-range-lahailuo', statusClass(rangeLahailuoCubeInput[acc.id]), { 'flag-all-done': allDoneFlags.range_lahailuo_cube }]">
+                <button type="button" class="status-toggle" :title="statusLabel(rangeLahailuoCubeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'range_lahailuo_cube')">
+                  {{ statusLabel(rangeLahailuoCubeInput[acc.id]) }}
+                </button>
+              </label>
+            </td>
+            <td>
+              <label :class="['status-item', 'flag-range-music', statusClass(rangeMusicGameInput[acc.id]), { 'flag-all-done': allDoneFlags.range_music_game }]">
+                <button type="button" class="status-toggle" :title="statusLabel(rangeMusicGameInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'range_music_game')">
+                  {{ statusLabel(rangeMusicGameInput[acc.id]) }}
+                </button>
+              </label>
             </td>
           </tr>
         </tbody>

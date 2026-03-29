@@ -19,26 +19,6 @@ class AccountCreate(AccountBase):
     last_waveplate: int = Field(default=0, ge=0, le=240)
     waveplate_crystal: int = Field(default=0, ge=0, le=480)
 
-    @model_validator(mode="before")
-    @classmethod
-    def fill_legacy_fields(cls, data: object) -> object:
-        if not isinstance(data, dict):
-            return data
-        d = dict(data)
-        if "id" not in d and "player_id" in d:
-            d["id"] = d["player_id"]
-        if "abbr" not in d and "account_code" in d:
-            d["abbr"] = d["account_code"]
-        if "nickname" not in d and "account_name" in d:
-            d["nickname"] = d["account_name"]
-        if "phone_number" not in d and "phone" in d:
-            d["phone_number"] = d["phone"]
-        if "remark" not in d and "note" in d:
-            d["remark"] = d["note"]
-        if "last_waveplate" not in d and "energy_at_prev_4am" in d:
-            d["last_waveplate"] = d["energy_at_prev_4am"]
-        return d
-
 
 class AccountUpdate(BaseModel):
     phone_number: str | None = None
@@ -49,24 +29,6 @@ class AccountUpdate(BaseModel):
     is_active: bool | None = None
     last_waveplate: int | None = Field(default=None, ge=0, le=240)
     waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
-
-    @model_validator(mode="before")
-    @classmethod
-    def fill_legacy_fields(cls, data: object) -> object:
-        if not isinstance(data, dict):
-            return data
-        d = dict(data)
-        if "abbr" not in d and "account_code" in d:
-            d["abbr"] = d["account_code"]
-        if "nickname" not in d and "account_name" in d:
-            d["nickname"] = d["account_name"]
-        if "phone_number" not in d and "phone" in d:
-            d["phone_number"] = d["phone"]
-        if "remark" not in d and "note" in d:
-            d["remark"] = d["note"]
-        if "last_waveplate" not in d and "energy_at_prev_4am" in d:
-            d["last_waveplate"] = d["energy_at_prev_4am"]
-        return d
 
 
 class AccountOut(AccountBase):
@@ -84,18 +46,6 @@ class AccountOut(AccountBase):
 class EnergySetIn(BaseModel):
     current_waveplate: int = Field(default=0, ge=0, le=240)
     current_waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
-
-    @model_validator(mode="before")
-    @classmethod
-    def fill_legacy_field(cls, data: object) -> object:
-        if not isinstance(data, dict):
-            return data
-        d = dict(data)
-        if "current_waveplate" not in d and "current_energy" in d:
-            d["current_waveplate"] = d["current_energy"]
-        if "current_waveplate_crystal" not in d and "waveplate_crystal" in d:
-            d["current_waveplate_crystal"] = d["waveplate_crystal"]
-        return d
 
 
 class EnergySpendIn(BaseModel):
@@ -226,8 +176,6 @@ class DashboardAccountOut(BaseModel):
     daily_nest_status: str = "todo"
     weekly_door_status: str = "todo"
     weekly_boss_status: str = "todo"
-    daily_done: bool = False
-    nest_cleared: bool = False
     waveplate_full_in_minutes: int
     eta_waveplate_full: datetime
     todo_count: int

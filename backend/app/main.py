@@ -993,8 +993,6 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 daily_nest_status=daily_nest_status,
                 weekly_door_status=weekly_door_status,
                 weekly_boss_status=weekly_boss_status,
-                daily_done=daily_task_status in DONE_STATUSES,
-                nest_cleared=daily_nest_status in DONE_STATUSES,
                 waveplate_full_in_minutes=to_full,
                 eta_waveplate_full=now + timedelta(minutes=to_full),
                 todo_count=todo_count or 0,

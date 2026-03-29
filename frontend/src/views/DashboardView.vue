@@ -263,8 +263,8 @@ async function refresh() {
     tacetInput.value[acc.id] = acc.tacet || ''
     savedWaveplate.value[acc.id] = acc.current_waveplate
     savedCrystal.value[acc.id] = acc.current_waveplate_crystal
-    dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task ?? acc.daily_done)
-    dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest ?? acc.nest_cleared)
+    dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task)
+    dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest)
     weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
     weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
   }
