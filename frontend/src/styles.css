@@ -290,7 +290,7 @@ table {
 
 .overview-table th:nth-child(7),
 .overview-table td:nth-child(7) {
-  min-width: 86px;
+  min-width: 118px;
 }
 
 .overview-table th:nth-child(8),
@@ -306,6 +306,16 @@ table {
 .overview-table th:nth-child(10),
 .overview-table td:nth-child(10) {
   min-width: 86px;
+}
+
+.overview-table th:nth-child(11),
+.overview-table td:nth-child(11) {
+  min-width: 86px;
+}
+
+.overview-table th:nth-child(12),
+.overview-table td:nth-child(12) {
+  min-width: 96px;
 }
 
 .periodic-table {
@@ -608,6 +618,10 @@ table {
   color: #92400e;
 }
 
+.status-item.flag-weekly-synthesis .status-label {
+  color: #0f766e;
+}
+
 .status-item.flag-version-matrix .status-label {
   color: #4338ca;
 }
@@ -750,6 +764,101 @@ td {
 
 .eta-trigger:hover {
   color: #0f4fb5;
+}
+
+.cleanup-duration {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 4px;
+  transition: color 0.15s ease;
+}
+
+.cleanup-duration.is-running {
+  color: #b42318;
+}
+
+.cleanup-timer-btn {
+  border: 1px solid #c9d3e6;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  line-height: 20px;
+  height: 24px;
+  padding: 0 8px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.cleanup-timer-btn:hover {
+  border-color: #9fb2da;
+}
+
+.cleanup-timer-btn.is-idle {
+  border-color: #84cc16;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.cleanup-timer-btn.is-idle:hover {
+  border-color: #65a30d;
+  background: #dcfce7;
+}
+
+.cleanup-timer-btn.is-running {
+  border-color: #f59e0b;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.cleanup-timer-btn.is-running:hover {
+  border-color: #d97706;
+  background: #ffedd5;
+}
+
+.cleanup-timer-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cleanup-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.cleanup-summary-card {
+  border: 1px solid #d9e1ef;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f8fbff;
+}
+
+.cleanup-total-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f3b8a;
+}
+
+.cleanup-manual-form {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.8fr) repeat(4, minmax(96px, 1fr)) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.cleanup-manual-form label {
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  .cleanup-manual-form {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .fulltime-modal-mask {

@@ -49,6 +49,9 @@ class Account(Base):
     checkins: Mapped[list["AccountCheckin"]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
+    cleanup_sessions: Mapped[list["AccountCleanupSession"]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
 
 
 class AccountCheckin(Base):
@@ -66,6 +69,24 @@ class AccountCheckin(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     account: Mapped["Account"] = relationship(back_populates="checkins")
+
+
+class AccountCleanupSession(Base):
+    __tablename__ = "account_cleanup_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.account_id", ondelete="CASCADE"), index=True)
+    biz_date: Mapped[date] = mapped_column(index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    duration_sec: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(16), default="running", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    account: Mapped["Account"] = relationship(back_populates="cleanup_sessions")
 
 
 class TaskTemplate(Base):

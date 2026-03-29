@@ -100,6 +100,31 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ tacet }),
     }),
+  startCleanupTimer: (id) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/cleanup-timer/start`, {
+      method: 'POST',
+    }),
+  pauseCleanupTimer: (id) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/cleanup-timer/pause`, {
+      method: 'POST',
+    }),
+  getCleanupTimerToday: (id) =>
+    request(`/accounts/by-id/${encodeURIComponent(id)}/cleanup-timer/today`),
+  getCleanupWeeklySummary: (days = 7) => request(`/cleanup-timer/weekly-summary?days=${encodeURIComponent(days)}`),
+  listCleanupSessions: (days = 7, accountId = null) => {
+    const params = new URLSearchParams()
+    params.set('days', String(days))
+    if (accountId !== null && accountId !== undefined && accountId !== '') {
+      params.set('account_id', String(accountId))
+    }
+    const query = params.toString()
+    return request(`/cleanup-timer/sessions${query ? `?${query}` : ''}`)
+  },
+  createCleanupSessionManual: (payload) =>
+    request('/cleanup-timer/sessions/manual', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   listTaskTemplates: () => request('/task-templates'),
   createTaskTemplate: (payload) => request('/task-templates', { method: 'POST', body: JSON.stringify(payload) }),
   generateTaskInstances: (payload) =>

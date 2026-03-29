@@ -25,13 +25,17 @@ from .energy import (
     spend_resources,
     warn_level,
 )
-from .models import Account, AccountCheckin, TaskInstance, TaskStatus, TaskTemplate
+from .models import Account, AccountCheckin, AccountCleanupSession, TaskInstance, TaskStatus, TaskTemplate
 from .schemas import (
     AccountCreate,
     AccountOut,
     AccountUpdate,
     DailyFlagUpdateIn,
     DashboardAccountOut,
+    CleanupSessionOut,
+    CleanupSessionManualCreateIn,
+    CleanupTimerStateOut,
+    CleanupWeeklySummaryOut,
     PeriodicAccountOut,
     TacetUpdateIn,
     EnergyGainIn,
@@ -59,6 +63,7 @@ ALLOWED_FLAG_KEYS = {
     "daily_nest",
     "weekly_door",
     "weekly_boss",
+    "weekly_synthesis",
     "version_matrix_soldier",
     "version_small_coral_exchange",
     "version_hologram_challenge",
@@ -75,6 +80,7 @@ FLAG_KEY_PERIOD_TYPE = {
     "daily_nest": "daily",
     "weekly_door": "weekly",
     "weekly_boss": "weekly",
+    "weekly_synthesis": "weekly",
     "version_matrix_soldier": "fv",
     "version_small_coral_exchange": "fv",
     "version_hologram_challenge": "fv",
@@ -169,6 +175,7 @@ def startup() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_account_columns()
     ensure_checkin_columns()
+    ensure_cleanup_timer_columns()
 
 
 def ensure_account_columns() -> None:
@@ -366,6 +373,60 @@ def ensure_checkin_columns() -> None:
         )
 
 
+def ensure_cleanup_timer_columns() -> None:
+    ddl = [
+        "CREATE TABLE IF NOT EXISTS account_cleanup_sessions ("
+        "id SERIAL PRIMARY KEY, "
+        "account_id INTEGER NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE, "
+        "biz_date DATE NOT NULL, "
+        "started_at TIMESTAMPTZ NOT NULL, "
+        "ended_at TIMESTAMPTZ NULL, "
+        "duration_sec INTEGER NOT NULL DEFAULT 0, "
+        "status VARCHAR(16) NOT NULL DEFAULT 'running', "
+        "created_at TIMESTAMPTZ NOT NULL DEFAULT now(), "
+        "updated_at TIMESTAMPTZ NOT NULL DEFAULT now()"
+        ")",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS biz_date DATE",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS duration_sec INTEGER DEFAULT 0",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS status VARCHAR(16) DEFAULT 'running'",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
+        "ALTER TABLE account_cleanup_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()",
+        "CREATE INDEX IF NOT EXISTS ix_account_cleanup_sessions_account_id ON account_cleanup_sessions (account_id)",
+        "CREATE INDEX IF NOT EXISTS ix_account_cleanup_sessions_biz_date ON account_cleanup_sessions (biz_date)",
+        "CREATE INDEX IF NOT EXISTS ix_account_cleanup_sessions_status ON account_cleanup_sessions (status)",
+        "CREATE INDEX IF NOT EXISTS ix_account_cleanup_sessions_started_at ON account_cleanup_sessions (started_at)",
+        "CREATE INDEX IF NOT EXISTS ix_account_cleanup_sessions_ended_at ON account_cleanup_sessions (ended_at)",
+    ]
+    with engine.begin() as conn:
+        for stmt in ddl:
+            conn.execute(text(stmt))
+        conn.execute(
+            text(
+                "UPDATE account_cleanup_sessions SET "
+                "status = CASE WHEN ended_at IS NULL THEN 'running' ELSE 'paused' END "
+                "WHERE status IS NULL OR status NOT IN ('running', 'paused')"
+            )
+        )
+        conn.execute(
+            text(
+                "UPDATE account_cleanup_sessions SET "
+                "duration_sec = CASE "
+                "WHEN ended_at IS NOT NULL THEN GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (ended_at - started_at)))::INT) "
+                "ELSE COALESCE(duration_sec, 0) END "
+                "WHERE duration_sec IS NULL OR duration_sec < 0"
+            )
+        )
+        conn.execute(
+            text(
+                "UPDATE account_cleanup_sessions SET "
+                "biz_date = COALESCE(biz_date, (started_at AT TIME ZONE :app_tz)::DATE, CURRENT_DATE)"
+            ),
+            {"app_tz": APP_TZ},
+        )
+
+
 def now_tz() -> datetime:
     return datetime.now(ZoneInfo(APP_TZ))
 
@@ -503,6 +564,48 @@ def get_account_by_id(db: Session, game_id: str) -> Account:
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
     return account
+
+
+def running_duration_seconds(started_at: datetime, now: datetime) -> int:
+    return max(0, int((now - started_at).total_seconds()))
+
+
+def account_cleanup_state(db: Session, account: Account, day: date, now: datetime) -> CleanupTimerStateOut:
+    paused_total = db.scalar(
+        select(func.coalesce(func.sum(AccountCleanupSession.duration_sec), 0)).where(
+            AccountCleanupSession.account_id == account.account_id,
+            AccountCleanupSession.biz_date == day,
+            AccountCleanupSession.status == "paused",
+        )
+    )
+    running_session = db.scalar(
+        select(AccountCleanupSession)
+        .where(
+            AccountCleanupSession.account_id == account.account_id,
+            AccountCleanupSession.status == "running",
+        )
+        .order_by(AccountCleanupSession.started_at.desc())
+    )
+    running_seconds = 0
+    running_started_at: datetime | None = None
+    running_session_id: int | None = None
+    if running_session is not None:
+        running_seconds = running_duration_seconds(running_session.started_at, now)
+        running_started_at = running_session.started_at
+        running_session_id = running_session.id
+    paused_sec = int(paused_total or 0)
+    return CleanupTimerStateOut(
+        account_id=account.account_id,
+        id=account.id,
+        abbr=account.abbr,
+        nickname=account.nickname,
+        biz_date=day.isoformat(),
+        today_total_sec=paused_sec + running_seconds,
+        today_paused_sec=paused_sec,
+        running=running_session is not None,
+        running_started_at=running_started_at,
+        running_session_id=running_session_id,
+    )
 
 
 @app.get("/healthz")
@@ -752,6 +855,232 @@ def set_tacet_by_feature(
     return set_tacet_by_id(feature_id, payload, db)
 
 
+@app.post("/accounts/by-id/{id}/cleanup-timer/start", response_model=CleanupTimerStateOut)
+def start_cleanup_timer_by_id(id: str, db: Session = Depends(get_db)) -> CleanupTimerStateOut:
+    account = get_account_by_id(db, id)
+    now = now_tz()
+    today = reset_day_tz(now)
+
+    running_session = db.scalar(
+        select(AccountCleanupSession)
+        .where(
+            AccountCleanupSession.account_id == account.account_id,
+            AccountCleanupSession.status == "running",
+        )
+        .order_by(AccountCleanupSession.started_at.desc())
+    )
+    if running_session is None:
+        running_session = AccountCleanupSession(
+            account_id=account.account_id,
+            biz_date=today,
+            started_at=now,
+            status="running",
+            duration_sec=0,
+        )
+        db.add(running_session)
+        db.commit()
+    return account_cleanup_state(db, account, today, now)
+
+
+@app.post("/accounts/by-id/{id}/cleanup-timer/pause", response_model=CleanupTimerStateOut)
+def pause_cleanup_timer_by_id(id: str, db: Session = Depends(get_db)) -> CleanupTimerStateOut:
+    account = get_account_by_id(db, id)
+    now = now_tz()
+    today = reset_day_tz(now)
+
+    running_session = db.scalar(
+        select(AccountCleanupSession)
+        .where(
+            AccountCleanupSession.account_id == account.account_id,
+            AccountCleanupSession.status == "running",
+        )
+        .order_by(AccountCleanupSession.started_at.desc())
+    )
+    if running_session is not None:
+        duration_sec = running_duration_seconds(running_session.started_at, now)
+        running_session.ended_at = now
+        running_session.duration_sec = duration_sec
+        running_session.status = "paused"
+        db.commit()
+    return account_cleanup_state(db, account, today, now)
+
+
+@app.get("/accounts/by-id/{id}/cleanup-timer/today", response_model=CleanupTimerStateOut)
+def get_cleanup_timer_today_by_id(id: str, db: Session = Depends(get_db)) -> CleanupTimerStateOut:
+    account = get_account_by_id(db, id)
+    now = now_tz()
+    today = reset_day_tz(now)
+    return account_cleanup_state(db, account, today, now)
+
+
+@app.get("/cleanup-timer/weekly-summary", response_model=CleanupWeeklySummaryOut)
+def cleanup_timer_weekly_summary(
+    db: Session = Depends(get_db),
+    days: int = Query(default=7, ge=1, le=90),
+) -> CleanupWeeklySummaryOut:
+    now = now_tz()
+    end_day = reset_day_tz(now)
+    start_day = end_day - timedelta(days=days - 1)
+    day_keys = [(start_day + timedelta(days=i)).isoformat() for i in range(days)]
+    day_duration = {key: 0 for key in day_keys}
+
+    paused_rows = db.execute(
+        select(
+            AccountCleanupSession.biz_date,
+            func.coalesce(func.sum(AccountCleanupSession.duration_sec), 0),
+        )
+        .where(
+            AccountCleanupSession.biz_date >= start_day,
+            AccountCleanupSession.biz_date <= end_day,
+            AccountCleanupSession.status == "paused",
+        )
+        .group_by(AccountCleanupSession.biz_date)
+    ).all()
+    for biz_date, total_sec in paused_rows:
+        key = biz_date.isoformat()
+        if key in day_duration:
+            day_duration[key] += int(total_sec or 0)
+
+    account_duration: dict[int, int] = {}
+    account_paused_rows = db.execute(
+        select(
+            AccountCleanupSession.account_id,
+            func.coalesce(func.sum(AccountCleanupSession.duration_sec), 0),
+        )
+        .where(
+            AccountCleanupSession.biz_date >= start_day,
+            AccountCleanupSession.biz_date <= end_day,
+            AccountCleanupSession.status == "paused",
+        )
+        .group_by(AccountCleanupSession.account_id)
+    ).all()
+    for account_id, total_sec in account_paused_rows:
+        account_duration[int(account_id)] = int(total_sec or 0)
+
+    running_rows = db.scalars(
+        select(AccountCleanupSession).where(
+            AccountCleanupSession.status == "running",
+            AccountCleanupSession.biz_date >= start_day,
+            AccountCleanupSession.biz_date <= end_day,
+        )
+    ).all()
+    for row in running_rows:
+        live_sec = running_duration_seconds(row.started_at, now)
+        key = row.biz_date.isoformat()
+        if key in day_duration:
+            day_duration[key] += live_sec
+        account_duration[row.account_id] = account_duration.get(row.account_id, 0) + live_sec
+
+    account_meta = {
+        acc.account_id: acc
+        for acc in db.scalars(select(Account).where(Account.account_id.in_(list(account_duration.keys())))).all()
+    } if account_duration else {}
+
+    daily = [{"biz_date": key, "duration_sec": int(day_duration[key])} for key in day_keys]
+    by_account = []
+    for account_id, duration_sec in sorted(account_duration.items(), key=lambda item: item[1], reverse=True):
+        account = account_meta.get(account_id)
+        if account is None:
+            continue
+        by_account.append(
+            {
+                "account_id": account.account_id,
+                "id": account.id,
+                "abbr": account.abbr,
+                "nickname": account.nickname,
+                "duration_sec": int(duration_sec),
+            }
+        )
+
+    return CleanupWeeklySummaryOut(
+        range_start=start_day.isoformat(),
+        range_end=end_day.isoformat(),
+        total_duration_sec=sum(item["duration_sec"] for item in daily),
+        daily=daily,
+        by_account=by_account,
+    )
+
+
+@app.get("/cleanup-timer/sessions", response_model=list[CleanupSessionOut])
+def list_cleanup_sessions(
+    db: Session = Depends(get_db),
+    days: int = Query(default=7, ge=1, le=90),
+    account_id: int | None = Query(default=None),
+) -> list[CleanupSessionOut]:
+    now = now_tz()
+    end_day = reset_day_tz(now)
+    start_day = end_day - timedelta(days=days - 1)
+    stmt = (
+        select(AccountCleanupSession, Account)
+        .join(Account, Account.account_id == AccountCleanupSession.account_id)
+        .where(
+            AccountCleanupSession.biz_date >= start_day,
+            AccountCleanupSession.biz_date <= end_day,
+        )
+        .order_by(AccountCleanupSession.started_at.desc())
+    )
+    if account_id is not None:
+        stmt = stmt.where(AccountCleanupSession.account_id == account_id)
+    rows = db.execute(stmt).all()
+    result: list[CleanupSessionOut] = []
+    for session, account in rows:
+        duration_sec = int(session.duration_sec or 0)
+        if session.status == "running":
+            duration_sec = running_duration_seconds(session.started_at, now)
+        result.append(
+            CleanupSessionOut(
+                id=session.id,
+                account_id=account.account_id,
+                account_game_id=account.id,
+                account_abbr=account.abbr,
+                account_nickname=account.nickname,
+                biz_date=session.biz_date.isoformat(),
+                started_at=session.started_at,
+                ended_at=session.ended_at,
+                duration_sec=duration_sec,
+                status=session.status,
+            )
+        )
+    return result
+
+
+@app.post("/cleanup-timer/sessions/manual", response_model=CleanupSessionOut)
+def create_cleanup_session_manual(
+    payload: CleanupSessionManualCreateIn,
+    db: Session = Depends(get_db),
+) -> CleanupSessionOut:
+    account = db.get(Account, payload.account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="account not found")
+
+    app_zone = ZoneInfo(APP_TZ)
+    started_at = datetime.combine(payload.biz_date, datetime.min.time(), tzinfo=app_zone)
+    ended_at = started_at + timedelta(seconds=payload.duration_sec)
+    session = AccountCleanupSession(
+        account_id=account.account_id,
+        biz_date=payload.biz_date,
+        started_at=started_at,
+        ended_at=ended_at,
+        duration_sec=payload.duration_sec,
+        status="paused",
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return CleanupSessionOut(
+        id=session.id,
+        account_id=account.account_id,
+        account_game_id=account.id,
+        account_abbr=account.abbr,
+        account_nickname=account.nickname,
+        biz_date=session.biz_date.isoformat(),
+        started_at=session.started_at,
+        ended_at=session.ended_at,
+        duration_sec=session.duration_sec,
+        status=session.status,
+    )
+
+
 @app.get("/accounts/{account_id}/energy", response_model=EnergyOut)
 def get_account_energy(account_id: int, db: Session = Depends(get_db)) -> EnergyOut:
     account = db.get(Account, account_id)
@@ -967,6 +1296,31 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
         normalized_status = raw_status if raw_status in {"todo", "done", "skipped"} else ("done" if flag.is_done else "todo")
         flags_map.setdefault(flag.account_id, {})[flag.flag_key] = normalized_status
 
+    cleanup_paused_map: dict[int, int] = {}
+    cleanup_running_map: dict[int, AccountCleanupSession] = {}
+    if account_ids:
+        paused_rows = db.execute(
+            select(
+                AccountCleanupSession.account_id,
+                func.coalesce(func.sum(AccountCleanupSession.duration_sec), 0),
+            ).where(
+                AccountCleanupSession.account_id.in_(account_ids),
+                AccountCleanupSession.biz_date == today,
+                AccountCleanupSession.status == "paused",
+            ).group_by(AccountCleanupSession.account_id)
+        ).all()
+        cleanup_paused_map = {int(account_id): int(total_sec or 0) for account_id, total_sec in paused_rows}
+        running_sessions = db.scalars(
+            select(AccountCleanupSession).where(
+                AccountCleanupSession.account_id.in_(account_ids),
+                AccountCleanupSession.status == "running",
+            )
+        ).all()
+        for session in running_sessions:
+            existing = cleanup_running_map.get(session.account_id)
+            if existing is None or session.started_at > existing.started_at:
+                cleanup_running_map[session.account_id] = session
+
     for acc in accounts:
         current_wp, current_crystal = recover_resources(
             acc.last_waveplate,
@@ -981,6 +1335,14 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
         daily_nest_status = acc_flags.get("daily_nest", "todo")
         weekly_door_status = acc_flags.get("weekly_door", "todo")
         weekly_boss_status = acc_flags.get("weekly_boss", "todo")
+        weekly_synthesis_status = acc_flags.get("weekly_synthesis", "todo")
+        cleanup_paused_sec = cleanup_paused_map.get(acc.account_id, 0)
+        running_session = cleanup_running_map.get(acc.account_id)
+        cleanup_running = running_session is not None
+        cleanup_running_started_at = running_session.started_at if running_session else None
+        cleanup_total_sec = cleanup_paused_sec
+        if running_session:
+            cleanup_total_sec += running_duration_seconds(running_session.started_at, now)
 
         todo_count = db.scalar(
             select(func.count(TaskInstance.id)).where(
@@ -1011,10 +1373,16 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 daily_nest=daily_nest_status in DONE_STATUSES,
                 weekly_door=weekly_door_status in DONE_STATUSES,
                 weekly_boss=weekly_boss_status in DONE_STATUSES,
+                weekly_synthesis=weekly_synthesis_status in DONE_STATUSES,
                 daily_task_status=daily_task_status,
                 daily_nest_status=daily_nest_status,
                 weekly_door_status=weekly_door_status,
                 weekly_boss_status=weekly_boss_status,
+                weekly_synthesis_status=weekly_synthesis_status,
+                cleanup_today_total_sec=cleanup_total_sec,
+                cleanup_today_paused_sec=cleanup_paused_sec,
+                cleanup_running=cleanup_running,
+                cleanup_running_started_at=cleanup_running_started_at,
                 waveplate_full_in_minutes=to_full,
                 eta_waveplate_full=now + timedelta(seconds=to_full_seconds),
                 todo_count=todo_count or 0,

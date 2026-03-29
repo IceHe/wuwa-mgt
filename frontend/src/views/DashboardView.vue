@@ -37,10 +37,12 @@
           <th>溢出</th>
           <th>满体力</th>
           <th>体力快捷操作</th>
+          <th>清日常时长</th>
           <th>日常</th>
           <th>聚落</th>
           <th>门扉</th>
           <th>周本</th>
+          <th>定向合成</th>
         </tr>
       </thead>
       <tbody>
@@ -127,6 +129,19 @@
             </div>
           </td>
           <td>
+            <div :class="['cleanup-duration', { 'is-running': acc.cleanup_running }]">
+              {{ formatDurationHms(getCleanupDisplaySeconds(acc)) }}
+            </div>
+            <button
+              type="button"
+              :class="['cleanup-timer-btn', acc.cleanup_running ? 'is-running' : 'is-idle']"
+              :disabled="cleanupBusyMap[acc.id]"
+              @click.stop="toggleCleanupTimer(acc)"
+            >
+              {{ acc.cleanup_running ? '暂停计时' : '开始计时' }}
+            </button>
+          </td>
+          <td>
             <label :class="['status-item', 'flag-daily-task', statusClass(dailyTaskStatusInput[acc.id]), { 'flag-all-done': allDoneFlags.daily_task }]">
               <button
                 type="button"
@@ -167,6 +182,17 @@
                 @click="cycleDailyFlag(acc.id, 'weekly_boss')"
               >
                 {{ statusLabel(weeklyBossStatusInput[acc.id]) }}
+              </button>
+            </label>
+          </td>
+          <td>
+            <label :class="['status-item', 'flag-weekly-synthesis', statusClass(weeklySynthesisStatusInput[acc.id]), { 'flag-all-done': allDoneFlags.weekly_synthesis }]">
+              <button
+                type="button"
+                class="status-toggle"
+                @click="cycleDailyFlag(acc.id, 'weekly_synthesis')"
+              >
+                {{ statusLabel(weeklySynthesisStatusInput[acc.id]) }}
               </button>
             </label>
           </td>
@@ -254,15 +280,18 @@ const dailyTaskStatusInput = ref({})
 const dailyNestStatusInput = ref({})
 const weeklyDoorStatusInput = ref({})
 const weeklyBossStatusInput = ref({})
+const weeklySynthesisStatusInput = ref({})
 const highlightedAccountId = ref(null)
 const countdownSeconds = ref(REFRESH_INTERVAL_SECONDS)
 const savedWaveplate = ref({})
 const savedCrystal = ref({})
 const flashWaveplateInput = ref({})
 const flashCrystalInput = ref({})
+const cleanupBusyMap = ref({})
 const lastEditedMap = ref({})
 const orderFrozen = ref(false)
 const frozenOrderIds = ref([])
+const clockNowMs = ref(Date.now())
 const fullWaveplatePicker = ref({
   visible: false,
   targetId: '',
@@ -334,6 +363,7 @@ const allDoneFlags = computed(() => ({
   daily_nest: isAllCompleted(dailyNestStatusInput.value),
   weekly_door: isAllCompleted(weeklyDoorStatusInput.value),
   weekly_boss: isAllCompleted(weeklyBossStatusInput.value),
+  weekly_synthesis: isAllCompleted(weeklySynthesisStatusInput.value),
 }))
 const fullDateMin = computed(() => getDateKeyInTZ(new Date()))
 
@@ -357,8 +387,30 @@ async function refresh() {
     dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest)
     weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
     weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
+    weeklySynthesisStatusInput.value[acc.id] = normalizeStatus(acc.weekly_synthesis_status, acc.weekly_synthesis)
+    cleanupBusyMap.value[acc.id] = false
   }
   syncHighlightedAccountId()
+}
+
+function formatDurationHms(totalSeconds) {
+  const sec = Math.max(0, Number(totalSeconds) || 0)
+  const hh = String(Math.floor(sec / 3600)).padStart(2, '0')
+  const mm = String(Math.floor((sec % 3600) / 60)).padStart(2, '0')
+  const ss = String(sec % 60).padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
+}
+
+function getCleanupDisplaySeconds(acc) {
+  const paused = Number(acc.cleanup_today_paused_sec || 0)
+  if (!acc.cleanup_running || !acc.cleanup_running_started_at) {
+    const total = Number(acc.cleanup_today_total_sec || paused)
+    return Math.max(paused, total)
+  }
+  const startedAtMs = new Date(acc.cleanup_running_started_at).getTime()
+  if (Number.isNaN(startedAtMs)) return Number(acc.cleanup_today_total_sec || paused)
+  const live = Math.max(0, Math.floor((clockNowMs.value - startedAtMs) / 1000))
+  return paused + live
 }
 
 function triggerInputFlash(id, type) {
@@ -514,7 +566,8 @@ function isAllChecklistCompleted(id) {
     isCompletedStatus(dailyTaskStatusInput.value[id]) &&
     isCompletedStatus(dailyNestStatusInput.value[id]) &&
     isCompletedStatus(weeklyDoorStatusInput.value[id]) &&
-    isCompletedStatus(weeklyBossStatusInput.value[id])
+    isCompletedStatus(weeklyBossStatusInput.value[id]) &&
+    isCompletedStatus(weeklySynthesisStatusInput.value[id])
   )
 }
 
@@ -578,7 +631,8 @@ function statusMapByKey(flagKey) {
   if (flagKey === 'daily_task') return dailyTaskStatusInput.value
   if (flagKey === 'daily_nest') return dailyNestStatusInput.value
   if (flagKey === 'weekly_door') return weeklyDoorStatusInput.value
-  return weeklyBossStatusInput.value
+  if (flagKey === 'weekly_boss') return weeklyBossStatusInput.value
+  return weeklySynthesisStatusInput.value
 }
 
 async function cycleDailyFlag(id, flagKey) {
@@ -606,6 +660,26 @@ async function updateTacet(id, tacet) {
   } catch (err) {
     alert(`保存失败：${err.message || '请稍后重试'}`)
     await refresh()
+  }
+}
+
+async function toggleCleanupTimer(acc) {
+  const id = acc.id
+  if (cleanupBusyMap.value[id]) return
+  cleanupBusyMap.value[id] = true
+  try {
+    if (acc.cleanup_running) {
+      await api.pauseCleanupTimer(id)
+    } else {
+      await api.startCleanupTimer(id)
+    }
+    markEdited(id)
+    await refresh()
+  } catch (err) {
+    alert(`计时操作失败：${err.message || '请稍后重试'}`)
+    await refresh()
+  } finally {
+    cleanupBusyMap.value[id] = false
   }
 }
 
@@ -765,6 +839,7 @@ onMounted(async () => {
     countdownSeconds.value = REFRESH_INTERVAL_SECONDS
   }, REFRESH_INTERVAL_SECONDS * 1000)
   countdownTimer = setInterval(() => {
+    clockNowMs.value = Date.now()
     if (countdownSeconds.value > 0) countdownSeconds.value -= 1
   }, 1000)
 })

@@ -4,6 +4,7 @@
       <h1>鸣潮账号体力管理系统</h1>
       <nav>
         <RouterLink to="/">每日每周</RouterLink>
+        <RouterLink to="/cleanup-timer">清日常明细</RouterLink>
         <RouterLink to="/periodic">周期活动</RouterLink>
         <RouterLink to="/manage/accounts">账号管理</RouterLink>
       </nav>

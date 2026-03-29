@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -179,10 +179,16 @@ class DashboardAccountOut(BaseModel):
     daily_nest: bool = False
     weekly_door: bool = False
     weekly_boss: bool = False
+    weekly_synthesis: bool = False
     daily_task_status: str = "todo"
     daily_nest_status: str = "todo"
     weekly_door_status: str = "todo"
     weekly_boss_status: str = "todo"
+    weekly_synthesis_status: str = "todo"
+    cleanup_today_total_sec: int = 0
+    cleanup_today_paused_sec: int = 0
+    cleanup_running: bool = False
+    cleanup_running_started_at: datetime | None = None
     waveplate_full_in_minutes: int
     eta_waveplate_full: datetime
     todo_count: int
@@ -217,3 +223,56 @@ class PeriodicAccountOut(BaseModel):
     range_lahailuo_cube_status: str = "todo"
     range_music_game: bool = False
     range_music_game_status: str = "todo"
+
+
+class CleanupTimerStateOut(BaseModel):
+    account_id: int
+    id: str
+    abbr: str
+    nickname: str
+    biz_date: str
+    today_total_sec: int
+    today_paused_sec: int
+    running: bool
+    running_started_at: datetime | None = None
+    running_session_id: int | None = None
+
+
+class CleanupWeeklyDayOut(BaseModel):
+    biz_date: str
+    duration_sec: int
+
+
+class CleanupWeeklyAccountOut(BaseModel):
+    account_id: int
+    id: str
+    abbr: str
+    nickname: str
+    duration_sec: int
+
+
+class CleanupWeeklySummaryOut(BaseModel):
+    range_start: str
+    range_end: str
+    total_duration_sec: int
+    daily: list[CleanupWeeklyDayOut]
+    by_account: list[CleanupWeeklyAccountOut]
+
+
+class CleanupSessionOut(BaseModel):
+    id: int
+    account_id: int
+    account_game_id: str
+    account_abbr: str
+    account_nickname: str
+    biz_date: str
+    started_at: datetime
+    ended_at: datetime | None = None
+    duration_sec: int
+    status: str
+
+
+class CleanupSessionManualCreateIn(BaseModel):
+    account_id: int
+    biz_date: date
+    duration_sec: int = Field(ge=1, le=86400)
