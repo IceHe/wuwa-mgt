@@ -59,6 +59,13 @@
       <button class="primary" @click="setCurrentEnergy">校准当前体力</button>
       <span v-if="energySaved" class="meta">已校准</span>
     </div>
+
+    <hr style="border: none; border-top: 1px solid #dce3f1; margin: 14px 0" />
+    <h3>删除账号</h3>
+    <div class="actions">
+      <button class="warn" @click="removeAccount">删除账号</button>
+      <span class="meta">将执行二次确认</span>
+    </div>
   </section>
 </template>
 
@@ -107,7 +114,7 @@ async function save() {
     waveplate_crystal: form.waveplate_crystal,
   })
   saved.value = true
-  await load()
+  router.push('/manage/accounts')
 }
 
 async function setCurrentEnergy() {
@@ -130,6 +137,18 @@ async function setCurrentEnergy() {
 }
 
 function back() {
+  router.push('/manage/accounts')
+}
+
+async function removeAccount() {
+  const ok = confirm(`确认删除账号 ${id} 吗？此操作不可恢复。`)
+  if (!ok) return
+  const input = prompt(`二次确认：请输入账号 ID（${id}）后删除`)
+  if ((input || '').trim() !== String(id)) {
+    alert('账号 ID 不匹配，已取消删除')
+    return
+  }
+  await api.deleteAccount(id)
   router.push('/manage/accounts')
 }
 

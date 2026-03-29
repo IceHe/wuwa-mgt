@@ -21,7 +21,6 @@
             v-for="acc in sortedAccounts"
             :key="acc.id"
             :class="{ edited: isHighlighted(acc.id) }"
-            @click="pinRow(acc.id)"
           >
             <td>
               <div class="account-main">
@@ -161,14 +160,7 @@ const rangeLahailuoCubeInput = ref({})
 const rangeMusicGameInput = ref({})
 
 const sortedAccounts = computed(() => {
-  const rows = [...accounts.value]
-  const currentId = normalizedId(highlightedAccountId.value)
-  if (!currentId) return rows
-  const idx = rows.findIndex((row) => normalizedId(row.id) === currentId)
-  if (idx <= 0) return rows
-  const [target] = rows.splice(idx, 1)
-  rows.unshift(target)
-  return rows
+  return [...accounts.value]
 })
 
 const allDoneFlags = computed(() => ({
@@ -232,22 +224,11 @@ async function updateCheckin(id, flagKey, isDone) {
   }
 }
 
-function pinRow(id) {
-  highlightedAccountId.value = normalizedId(id)
-  scrollToPageTop()
-}
-
 function markEdited(id) {
   const key = normalizedId(id)
   highlightedAccountId.value = key
   lastEditedMap.value[key] = Date.now()
   saveLastEditedMap()
-  scrollToPageTop()
-}
-
-function scrollToPageTop() {
-  if (typeof window === 'undefined') return
-  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function saveLastEditedMap() {

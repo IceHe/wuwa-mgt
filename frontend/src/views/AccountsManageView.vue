@@ -1,43 +1,9 @@
 <template>
-  <section class="panel" style="margin-bottom: 12px">
-    <h2>新建账号</h2>
-    <div class="form-grid">
-      <label>
-        账号 ID
-        <input v-model="form.id" placeholder="例: 120003177" />
-      </label>
-      <label>
-        账号缩写 (abbr)
-        <input v-model="form.abbr" />
-      </label>
-      <label>
-        账号昵称
-        <input v-model="form.nickname" />
-      </label>
-      <label>
-        手机号
-        <input v-model="form.phone_number" />
-      </label>
-      <label>
-        上次更新体力
-        <input v-model.number="form.last_waveplate" type="number" min="0" max="240" />
-      </label>
-      <label>
-        体力结晶
-        <input v-model.number="form.waveplate_crystal" type="number" min="0" max="480" />
-      </label>
-    </div>
-    <label>
-      备注
-      <textarea v-model="form.remark" rows="2" />
-    </label>
-    <div class="actions" style="margin-top: 8px">
-      <button class="primary" @click="create">创建</button>
-    </div>
-  </section>
-
   <section class="panel">
-    <h2>账号列表</h2>
+    <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+      <h2 style="margin: 0">账号列表</h2>
+      <button class="primary" @click="openCreateModal">创建账号</button>
+    </div>
     <div class="table-wrap">
       <table class="manage-table">
         <thead>
@@ -50,7 +16,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="acc in accounts" :key="acc.id">
+          <tr v-for="acc in accounts" :key="acc.id" :class="{ inactive: !acc.is_active }">
             <td>
               <div class="account-main">
                 <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
@@ -76,13 +42,55 @@
             <td>{{ acc.waveplate_crystal }}</td>
             <td>
               <button @click="edit(acc.id)">编辑</button>
-              <button class="warn" @click="remove(acc.id)">删除</button>
+              <button :class="acc.is_active ? 'warn' : ''" @click="toggleActive(acc)">
+                {{ acc.is_active ? '停用' : '启用' }}
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
+
+  <div v-if="showCreateModal" class="modal-mask" @click="closeCreateModal">
+    <div class="modal-card panel" @click.stop>
+      <h2 style="margin-top: 0">新建账号</h2>
+      <div class="form-grid">
+        <label>
+          账号 ID
+          <input v-model="form.id" placeholder="例: 120003177" />
+        </label>
+        <label>
+          账号缩写 (abbr)
+          <input v-model="form.abbr" />
+        </label>
+        <label>
+          账号昵称
+          <input v-model="form.nickname" />
+        </label>
+        <label>
+          手机号
+          <input v-model="form.phone_number" />
+        </label>
+        <label>
+          上次更新体力
+          <input v-model.number="form.last_waveplate" type="number" min="0" max="240" />
+        </label>
+        <label>
+          体力结晶
+          <input v-model.number="form.waveplate_crystal" type="number" min="0" max="480" />
+        </label>
+      </div>
+      <label>
+        备注
+        <textarea v-model="form.remark" rows="2" />
+      </label>
+      <div class="actions" style="margin-top: 10px; justify-content: flex-end">
+        <button @click="closeCreateModal">取消</button>
+        <button class="primary" @click="create">创建</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -93,6 +101,7 @@ import { api } from '../api'
 const router = useRouter()
 const accounts = ref([])
 const copiedAccountId = ref(null)
+const showCreateModal = ref(false)
 const form = reactive({
   id: '',
   phone_number: '',
@@ -110,6 +119,24 @@ async function refresh() {
 
 async function create() {
   await api.createAccount(form)
+  resetCreateForm()
+  showCreateModal.value = false
+  await refresh()
+}
+
+function edit(id) {
+  router.push(`/manage/accounts/${encodeURIComponent(id)}`)
+}
+
+function openCreateModal() {
+  showCreateModal.value = true
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+}
+
+function resetCreateForm() {
   form.id = ''
   form.phone_number = ''
   form.nickname = ''
@@ -117,16 +144,14 @@ async function create() {
   form.remark = ''
   form.last_waveplate = 0
   form.waveplate_crystal = 0
-  await refresh()
 }
 
-async function remove(id) {
-  await api.deleteAccount(id)
+async function toggleActive(acc) {
+  const nextActive = !acc.is_active
+  const actionText = nextActive ? '启用' : '停用'
+  if (!confirm(`确认${actionText}账号 ${acc.id} 吗？`)) return
+  await api.updateAccount(acc.id, { is_active: nextActive })
   await refresh()
-}
-
-function edit(id) {
-  router.push(`/manage/accounts/${encodeURIComponent(id)}`)
 }
 
 function maskPhone(phone) {

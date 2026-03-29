@@ -22,6 +22,7 @@
             <option value="eta">最近满体</option>
             <option value="recent_edit">最近修改</option>
             <option value="oldest_edit">最久未修改</option>
+            <option value="abbr">账号缩写</option>
           </select>
         </label>
       </div>
@@ -44,7 +45,6 @@
           v-for="acc in sortedAccounts"
           :key="acc.id"
           :class="[acc.warn_level, { edited: isHighlighted(acc.id) }]"
-          @click="pinRow(acc.id)"
         >
           <td>
             <div class="account-main">
@@ -157,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
 
 const REFRESH_INTERVAL_SECONDS = 60
@@ -176,29 +176,21 @@ const countdownSeconds = ref(REFRESH_INTERVAL_SECONDS)
 const savedWaveplate = ref({})
 const savedCrystal = ref({})
 const lastEditedMap = ref({})
+const orderFrozen = ref(false)
+const frozenOrderIds = ref([])
 const savingIds = new Set()
 let fetchTimer = null
 let countdownTimer = null
 
-const sortedAccounts = computed(() => {
+function getSortedRowsByMode() {
   const rows = [...accounts.value]
-  const pinEditedRowToTop = (list) => {
-    const currentId = normalizedId(highlightedAccountId.value)
-    if (!currentId) return list
-    const idx = list.findIndex((row) => normalizedId(row.id) === currentId)
-    if (idx <= 0) return list
-    const [target] = list.splice(idx, 1)
-    list.unshift(target)
-    return list
-  }
-
   if (sortMode.value === 'recent_edit') {
     rows.sort((a, b) => {
       const ta = Number(lastEditedMap.value[a.id] || 0)
       const tb = Number(lastEditedMap.value[b.id] || 0)
       return tb - ta
     })
-    return pinEditedRowToTop(rows)
+    return rows
   }
   if (sortMode.value === 'oldest_edit') {
     rows.sort((a, b) => {
@@ -206,10 +198,30 @@ const sortedAccounts = computed(() => {
       const tb = Number(lastEditedMap.value[b.id] || 0)
       return ta - tb
     })
-    return pinEditedRowToTop(rows)
+    return rows
+  }
+  if (sortMode.value === 'abbr') {
+    rows.sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+    return rows
   }
   rows.sort((a, b) => new Date(a.eta_waveplate_full).getTime() - new Date(b.eta_waveplate_full).getTime())
-  return pinEditedRowToTop(rows)
+  return rows
+}
+
+const sortedAccounts = computed(() => {
+  const rows = getSortedRowsByMode()
+  if (!orderFrozen.value || !frozenOrderIds.value.length) return rows
+
+  const orderMap = new Map(frozenOrderIds.value.map((id, idx) => [String(id), idx]))
+  rows.sort((a, b) => {
+    const ia = orderMap.get(String(a.id))
+    const ib = orderMap.get(String(b.id))
+    if (ia === undefined && ib === undefined) return 0
+    if (ia === undefined) return 1
+    if (ib === undefined) return -1
+    return ia - ib
+  })
+  return rows
 })
 
 const countdownProgress = computed(() => {
@@ -357,16 +369,14 @@ async function updateTacet(id, tacet) {
 }
 
 function markEdited(id) {
+  if (!orderFrozen.value) {
+    frozenOrderIds.value = getSortedRowsByMode().map((row) => row.id)
+    orderFrozen.value = true
+  }
   const key = normalizedId(id)
   highlightedAccountId.value = key
   lastEditedMap.value[key] = Date.now()
   saveLastEditedMap()
-  scrollToPageTop()
-}
-
-function pinRow(id) {
-  highlightedAccountId.value = normalizedId(id)
-  scrollToPageTop()
 }
 
 function saveLastEditedMap() {
@@ -408,11 +418,6 @@ function syncHighlightedAccountId() {
   highlightedAccountId.value = latestId || null
 }
 
-function scrollToPageTop() {
-  if (typeof window === 'undefined') return
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
 onMounted(async () => {
   loadLastEditedMap()
   await refresh()
@@ -424,6 +429,11 @@ onMounted(async () => {
   countdownTimer = setInterval(() => {
     if (countdownSeconds.value > 0) countdownSeconds.value -= 1
   }, 1000)
+})
+
+watch(sortMode, () => {
+  orderFrozen.value = false
+  frozenOrderIds.value = []
 })
 
 onUnmounted(() => {
