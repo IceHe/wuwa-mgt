@@ -23,8 +23,16 @@
         </select>
       </label>
       <label>
-        体力结晶
-        <input v-model.number="form.waveplate_crystal" type="number" min="0" max="480" />
+        当前体力
+        <input :value="manualCurrentEnergy" type="number" disabled />
+      </label>
+      <label>
+        当前结晶
+        <input :value="manualCurrentCrystal ?? ''" type="number" disabled />
+      </label>
+      <label>
+        满体力时间
+        <input :value="manualFullWaveplateAt" type="datetime-local" step="1" disabled />
       </label>
     </div>
     <label>
@@ -99,8 +107,19 @@ const form = reactive({
   abbr: '',
   remark: '',
   is_active: true,
-  waveplate_crystal: 0,
 })
+
+function toDateTimeLocal(value) {
+  const dt = new Date(value)
+  if (Number.isNaN(dt.getTime())) return ''
+  const yyyy = dt.getFullYear()
+  const mm = String(dt.getMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getDate()).padStart(2, '0')
+  const hh = String(dt.getHours()).padStart(2, '0')
+  const mi = String(dt.getMinutes()).padStart(2, '0')
+  const ss = String(dt.getSeconds()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`
+}
 
 async function load() {
   const account = await api.getAccountById(id)
@@ -109,9 +128,9 @@ async function load() {
   form.phone_number = account.phone_number || ''
   form.remark = account.remark || ''
   form.is_active = !!account.is_active
-  form.waveplate_crystal = Number(account.waveplate_crystal || 0)
-  manualCurrentEnergy.value = Number(account.last_waveplate || 0)
-  manualCurrentCrystal.value = Number(account.waveplate_crystal || 0)
+  manualCurrentEnergy.value = Number(account.current_waveplate || 0)
+  manualCurrentCrystal.value = Number(account.current_waveplate_crystal || 0)
+  manualFullWaveplateAt.value = toDateTimeLocal(account.full_waveplate_at)
 }
 
 async function save() {
@@ -122,7 +141,6 @@ async function save() {
     phone_number: form.phone_number,
     remark: form.remark,
     is_active: form.is_active,
-    waveplate_crystal: form.waveplate_crystal,
   })
   saved.value = true
   router.push('/manage/accounts')
@@ -142,7 +160,7 @@ async function setCurrentEnergy() {
     return
   }
   energySaved.value = false
-  await api.setWaveplate(id, value, crystal)
+  await api.setCurrentEnergy(id, value, crystal)
   energySaved.value = true
   await load()
 }
@@ -162,9 +180,6 @@ async function setByFullWaveplateTime() {
     alert('满体力时间格式无效')
     return
   }
-  const deltaSeconds = Math.floor((fullAt.getTime() - Date.now()) / 1000)
-  const missing = deltaSeconds <= 0 ? 0 : Math.ceil(deltaSeconds / 360)
-  const waveplate = Math.max(0, 240 - missing)
   const crystalRaw = manualCurrentCrystal.value
   const crystal =
     crystalRaw === '' || crystalRaw === undefined || crystalRaw === null ? null : Number(crystalRaw)
@@ -173,7 +188,7 @@ async function setByFullWaveplateTime() {
     return
   }
   energySaved.value = false
-  await api.setWaveplate(id, waveplate, crystal)
+  await api.setFullWaveplateTime(id, fullAt.toISOString(), crystal)
   energySaved.value = true
   await load()
 }

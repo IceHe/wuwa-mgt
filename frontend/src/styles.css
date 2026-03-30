@@ -285,37 +285,50 @@ table {
 
 .overview-table th:nth-child(6),
 .overview-table td:nth-child(6) {
-  min-width: 220px;
+  min-width: 188px;
 }
 
 .overview-table th:nth-child(7),
 .overview-table td:nth-child(7) {
-  min-width: 118px;
+  min-width: 104px;
 }
 
 .overview-table th:nth-child(8),
 .overview-table td:nth-child(8) {
-  min-width: 86px;
+  min-width: 58px;
 }
 
 .overview-table th:nth-child(9),
 .overview-table td:nth-child(9) {
-  min-width: 86px;
+  min-width: 58px;
 }
 
 .overview-table th:nth-child(10),
 .overview-table td:nth-child(10) {
-  min-width: 86px;
+  min-width: 58px;
 }
 
 .overview-table th:nth-child(11),
 .overview-table td:nth-child(11) {
-  min-width: 86px;
+  min-width: 58px;
 }
 
 .overview-table th:nth-child(12),
 .overview-table td:nth-child(12) {
-  min-width: 96px;
+  min-width: 60px;
+}
+
+.overview-table th,
+.overview-table td {
+  padding: 4px 5px;
+}
+
+.overview-table .status-toggle {
+  min-width: 30px;
+  height: 18px;
+  line-height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
 }
 
 .periodic-table {
@@ -514,11 +527,53 @@ table {
 .waveplate-input {
   background: #edf5ff;
   border-color: #cddff7;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.waveplate-input.waveplate-high {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.waveplate-input.waveplate-full {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.waveplate-input.combined-alert-120 {
+  background: #f5f3ff;
+  border-color: #a78bfa;
+  color: #5b21b6;
+}
+
+.waveplate-input.combined-alert-240 {
+  background: #ecfeff;
+  border-color: #22d3ee;
+  color: #0e7490;
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.18);
 }
 
 .crystal-input {
   background: #eef9f1;
   border-color: #cde7d4;
+}
+
+.crystal-input.combined-alert-120 {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+  color: #6d28d9;
+  font-weight: 700;
+}
+
+.crystal-input.combined-alert-240 {
+  background: #cffafe;
+  border-color: #06b6d4;
+  color: #155e75;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.22);
 }
 
 .input-flash {
@@ -751,6 +806,13 @@ td {
   white-space: pre-line;
 }
 
+.eta-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .eta-trigger {
   border: none;
   background: transparent;
@@ -764,6 +826,10 @@ td {
 
 .eta-trigger:hover {
   color: #0f4fb5;
+}
+
+.eta-next {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 .cleanup-duration {

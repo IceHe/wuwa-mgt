@@ -15,8 +15,9 @@ BACKEND_BASE = 'http://127.0.0.1:8765'
 DIST_DIR = '/root/wuwa/mgt/frontend/dist'
 
 
-class ReusableTCPServer(socketserver.TCPServer):
+class ReusableTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
+    daemon_threads = True
 
 class ProxyHandler(http.server.SimpleHTTPRequestHandler):
     def _proxy(self):

@@ -39,21 +39,40 @@
           </select>
         </label>
         <label>
-          业务日
-          <input v-model="manual.bizDate" type="date" />
+          录入方式
+          <select v-model="manual.mode">
+            <option value="duration">按时长</option>
+            <option value="period">按时段</option>
+          </select>
         </label>
-        <label>
-          小时
-          <input v-model.number="manual.hours" type="number" min="0" max="24" />
-        </label>
-        <label>
-          分钟
-          <input v-model.number="manual.minutes" type="number" min="0" max="59" />
-        </label>
-        <label>
-          秒
-          <input v-model.number="manual.seconds" type="number" min="0" max="59" />
-        </label>
+        <template v-if="manual.mode === 'duration'">
+          <label>
+            业务日
+            <input v-model="manual.bizDate" type="date" />
+          </label>
+          <label>
+            小时
+            <input v-model.number="manual.hours" type="number" min="0" max="24" />
+          </label>
+          <label>
+            分钟
+            <input v-model.number="manual.minutes" type="number" min="0" max="59" />
+          </label>
+          <label>
+            秒
+            <input v-model.number="manual.seconds" type="number" min="0" max="59" />
+          </label>
+        </template>
+        <template v-else>
+          <label>
+            开始时间
+            <input v-model="manual.periodStart" type="datetime-local" step="1" />
+          </label>
+          <label>
+            结束时间
+            <input v-model="manual.periodEnd" type="datetime-local" step="1" />
+          </label>
+        </template>
         <button type="button" class="primary" :disabled="manual.saving" @click="submitManualSession">
           补录
         </button>
@@ -104,6 +123,7 @@
             <th>结束</th>
             <th>时长</th>
             <th>状态</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -114,6 +134,16 @@
             <td>{{ row.ended_at ? formatDateTime(row.ended_at) : '-' }}</td>
             <td>{{ formatDurationHms(row.status === 'running' ? runningDurationSec(row.started_at) : row.duration_sec) }}</td>
             <td>{{ row.status === 'running' ? '进行中' : '已暂停' }}</td>
+            <td>
+              <button
+                type="button"
+                class="warn"
+                :disabled="deletingSessionId === row.id"
+                @click="deleteSession(row)"
+              >
+                {{ deletingSessionId === row.id ? '删除中...' : '删除' }}
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -136,12 +166,16 @@ const weeklySummary = ref({
 })
 const sessions = ref([])
 const clockNowMs = ref(Date.now())
+const deletingSessionId = ref(null)
 const manual = ref({
+  mode: 'duration',
   accountId: '',
   bizDate: getTodayDateKey(),
   hours: 0,
   minutes: 30,
   seconds: 0,
+  periodStart: getNowDateTimeLocalText(),
+  periodEnd: getLaterDateTimeLocalText(30 * 60),
   saving: false,
 })
 let timer = null
@@ -152,6 +186,28 @@ function getTodayDateKey() {
   const m = String(dt.getMonth() + 1).padStart(2, '0')
   const d = String(dt.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+function getNowDateTimeLocalText() {
+  const dt = new Date()
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const d = String(dt.getDate()).padStart(2, '0')
+  const hh = String(dt.getHours()).padStart(2, '0')
+  const mm = String(dt.getMinutes()).padStart(2, '0')
+  const ss = String(dt.getSeconds()).padStart(2, '0')
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`
+}
+
+function getLaterDateTimeLocalText(deltaSeconds) {
+  const dt = new Date(Date.now() + deltaSeconds * 1000)
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const d = String(dt.getDate()).padStart(2, '0')
+  const hh = String(dt.getHours()).padStart(2, '0')
+  const mm = String(dt.getMinutes()).padStart(2, '0')
+  const ss = String(dt.getSeconds()).padStart(2, '0')
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`
 }
 
 function formatDurationHms(totalSeconds) {
@@ -199,51 +255,94 @@ async function refreshAccounts() {
 
 async function submitManualSession() {
   const accountId = Number(manual.value.accountId)
-  const hours = Number(manual.value.hours)
-  const minutes = Number(manual.value.minutes)
-  const seconds = Number(manual.value.seconds)
-  const bizDate = String(manual.value.bizDate || '').trim()
   if (!accountId) {
     alert('请选择账号')
     return
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(bizDate)) {
-    alert('业务日格式无效')
-    return
-  }
-  if (!Number.isInteger(hours) || hours < 0 || hours > 24) {
-    alert('小时范围应为 0~24')
-    return
-  }
-  if (!Number.isInteger(minutes) || minutes < 0 || minutes > 59) {
-    alert('分钟范围应为 0~59')
-    return
-  }
-  if (!Number.isInteger(seconds) || seconds < 0 || seconds > 59) {
-    alert('秒范围应为 0~59')
-    return
-  }
-  const durationSec = hours * 3600 + minutes * 60 + seconds
-  if (durationSec <= 0) {
-    alert('补录时长必须大于 0 秒')
-    return
-  }
-  if (durationSec > 86400) {
-    alert('补录时长不能超过 24 小时')
-    return
-  }
   manual.value.saving = true
   try {
-    await api.createCleanupSessionManual({
-      account_id: accountId,
-      biz_date: bizDate,
-      duration_sec: durationSec,
-    })
+    if (manual.value.mode === 'duration') {
+      const hours = Number(manual.value.hours)
+      const minutes = Number(manual.value.minutes)
+      const seconds = Number(manual.value.seconds)
+      const bizDate = String(manual.value.bizDate || '').trim()
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(bizDate)) {
+        alert('业务日格式无效')
+        return
+      }
+      if (!Number.isInteger(hours) || hours < 0 || hours > 24) {
+        alert('小时范围应为 0~24')
+        return
+      }
+      if (!Number.isInteger(minutes) || minutes < 0 || minutes > 59) {
+        alert('分钟范围应为 0~59')
+        return
+      }
+      if (!Number.isInteger(seconds) || seconds < 0 || seconds > 59) {
+        alert('秒范围应为 0~59')
+        return
+      }
+      const durationSec = hours * 3600 + minutes * 60 + seconds
+      if (durationSec <= 0) {
+        alert('补录时长必须大于 0 秒')
+        return
+      }
+      if (durationSec > 86400) {
+        alert('补录时长不能超过 24 小时')
+        return
+      }
+      await api.createCleanupSessionManual({
+        account_id: accountId,
+        biz_date: bizDate,
+        duration_sec: durationSec,
+      })
+    } else {
+      const startRaw = String(manual.value.periodStart || '').trim()
+      const endRaw = String(manual.value.periodEnd || '').trim()
+      if (!startRaw || !endRaw) {
+        alert('请填写开始时间和结束时间')
+        return
+      }
+      const start = new Date(startRaw)
+      const end = new Date(endRaw)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        alert('时段格式无效')
+        return
+      }
+      if (end.getTime() <= start.getTime()) {
+        alert('结束时间必须晚于开始时间')
+        return
+      }
+      const durationSec = Math.floor((end.getTime() - start.getTime()) / 1000)
+      if (durationSec > 86400) {
+        alert('补录时段不能超过 24 小时')
+        return
+      }
+      await api.createCleanupSessionManual({
+        account_id: accountId,
+        started_at: start.toISOString(),
+        ended_at: end.toISOString(),
+      })
+    }
     await refreshAll()
   } catch (err) {
     alert(`补录失败：${err.message || '请稍后重试'}`)
   } finally {
     manual.value.saving = false
+  }
+}
+
+async function deleteSession(row) {
+  const ok = confirm(`确认删除该记录吗？\n账号: ${row.account_abbr} / ${row.account_game_id}\n开始: ${formatDateTime(row.started_at)}`)
+  if (!ok) return
+  deletingSessionId.value = row.id
+  try {
+    await api.deleteCleanupSession(row.id)
+    await refreshAll()
+  } catch (err) {
+    alert(`删除失败：${err.message || '请稍后重试'}`)
+  } finally {
+    deletingSessionId.value = null
   }
 }
 

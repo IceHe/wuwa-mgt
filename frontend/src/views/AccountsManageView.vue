@@ -20,8 +20,8 @@
           <tr>
             <th>ID / 尾号 / 昵称</th>
             <th>手机号</th>
-            <th>上次体力</th>
-            <th>结晶</th>
+            <th>当前体力</th>
+            <th>满体 / 结晶</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -48,8 +48,11 @@
                 {{ copiedAccountId === acc.account_id ? '已复制' : '复制' }}
               </button>
             </td>
-            <td>{{ acc.last_waveplate }}</td>
-            <td>{{ acc.waveplate_crystal }}</td>
+            <td>{{ acc.current_waveplate }}</td>
+            <td>
+              <div>{{ formatFullTime(acc.full_waveplate_at) }}</div>
+              <div class="meta">结晶 {{ acc.current_waveplate_crystal }}</div>
+            </td>
             <td>
               <button @click="edit(acc.id)">编辑</button>
               <button :class="acc.is_active ? 'warn' : ''" @click="toggleActive(acc)">
@@ -83,12 +86,12 @@
           <input v-model="form.phone_number" />
         </label>
         <label>
-          上次更新体力
-          <input v-model.number="form.last_waveplate" type="number" min="0" max="240" />
+          当前体力
+          <input v-model.number="form.current_waveplate" type="number" min="0" max="240" />
         </label>
         <label>
           体力结晶
-          <input v-model.number="form.waveplate_crystal" type="number" min="0" max="480" />
+          <input v-model.number="form.current_waveplate_crystal" type="number" min="0" max="480" />
         </label>
       </div>
       <label>
@@ -104,13 +107,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
+import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const router = useRouter()
+const SORT_MODE_STORAGE_KEY = 'wuwa_accounts_manage_sort_mode_v1'
+const SORT_MODE_OPTIONS = ['abbr', 'created_desc', 'updated_desc']
 const accounts = ref([])
-const sortMode = ref('abbr')
+const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))
 const copiedAccountId = ref(null)
 const showCreateModal = ref(false)
 const form = reactive({
@@ -119,8 +125,8 @@ const form = reactive({
   nickname: '',
   abbr: '',
   remark: '',
-  last_waveplate: 0,
-  waveplate_crystal: 0,
+  current_waveplate: 0,
+  current_waveplate_crystal: 0,
   is_active: true,
 })
 
@@ -167,8 +173,8 @@ function resetCreateForm() {
   form.nickname = ''
   form.abbr = ''
   form.remark = ''
-  form.last_waveplate = 0
-  form.waveplate_crystal = 0
+  form.current_waveplate = 0
+  form.current_waveplate_crystal = 0
 }
 
 async function toggleActive(acc) {
@@ -191,6 +197,16 @@ function phoneTail(phone) {
   return raw.slice(-4)
 }
 
+function formatFullTime(value) {
+  const dt = new Date(value)
+  if (Number.isNaN(dt.getTime())) return '-'
+  const mm = String(dt.getMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getDate()).padStart(2, '0')
+  const hh = String(dt.getHours()).padStart(2, '0')
+  const mi = String(dt.getMinutes()).padStart(2, '0')
+  return `${mm}-${dd} ${hh}:${mi}`
+}
+
 async function copyPhone(acc) {
   const full = String(acc.phone_number || '').trim()
   if (!full) return
@@ -209,6 +225,10 @@ async function copyPhone(acc) {
     if (copiedAccountId.value === acc.account_id) copiedAccountId.value = null
   }, 1200)
 }
+
+watch(sortMode, (value) => {
+  saveStoredValue(SORT_MODE_STORAGE_KEY, value)
+})
 
 onMounted(refresh)
 </script>

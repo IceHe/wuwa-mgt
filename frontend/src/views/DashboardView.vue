@@ -87,7 +87,12 @@
           <td>
               <input
                 v-model.number="manualInput[acc.id]"
-                :class="['waveplate-input', { 'input-flash': flashWaveplateInput[acc.id] }]"
+                :class="[
+                  'waveplate-input',
+                  waveplateLevelClass(acc.id, acc.current_waveplate),
+                  combinedEnergyClass(acc.id, acc.current_waveplate, acc.current_waveplate_crystal),
+                  { 'input-flash': flashWaveplateInput[acc.id] },
+                ]"
                 type="number"
                 min="0"
                 max="240"
@@ -100,7 +105,11 @@
           <td>
             <input
               v-model.number="manualCrystalInput[acc.id]"
-              :class="['crystal-input', { 'input-flash': flashCrystalInput[acc.id] }]"
+              :class="[
+                'crystal-input',
+                combinedEnergyClass(acc.id, acc.current_waveplate, acc.current_waveplate_crystal),
+                { 'input-flash': flashCrystalInput[acc.id] },
+              ]"
               type="number"
               min="0"
               max="480"
@@ -111,14 +120,19 @@
             />
           </td>
           <td class="eta-cell">
-            <button
-              type="button"
-              class="eta-trigger"
-              @mousedown.prevent.stop="prepareOpenFullWaveplatePicker(acc.id)"
-              @click.stop="openFullWaveplatePicker(acc)"
-            >
-              {{ formatFullTime(acc.eta_waveplate_full) }}
-            </button>
+            <div class="eta-inline">
+              <button
+                type="button"
+                class="eta-trigger"
+                @mousedown.prevent.stop="prepareOpenFullWaveplatePicker(acc.id)"
+                @click.stop="openFullWaveplatePicker(acc)"
+              >
+                {{ formatFullTime(acc.eta_waveplate_full) }}
+              </button>
+              <span class="eta-next meta">
+              {{ formatNextWaveplateCountdown(acc) }}
+              </span>
+            </div>
           </td>
           <td>
             <div class="quick-row overview-quick-row">
@@ -266,13 +280,16 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
+import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const REFRESH_INTERVAL_SECONDS = 60
 const LAST_EDIT_STORAGE_KEY = 'wuwa_dashboard_last_edit_map_v1'
+const SORT_MODE_STORAGE_KEY = 'wuwa_dashboard_sort_mode_v1'
+const SORT_MODE_OPTIONS = ['eta', 'recent_edit', 'oldest_edit', 'abbr']
 const STATUS_FLOW = ['todo', 'done', 'skipped']
 const DISPLAY_TIMEZONE = 'Asia/Shanghai'
 const accounts = ref([])
-const sortMode = ref('eta')
+const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'eta', SORT_MODE_OPTIONS))
 const manualInput = ref({})
 const manualCrystalInput = ref({})
 const tacetInput = ref({})
@@ -308,6 +325,7 @@ const savingIds = new Set()
 const flashTimers = new Map()
 let fetchTimer = null
 let countdownTimer = null
+let refreshing = false
 
 function getSortedRowsByMode() {
   const rows = [...accounts.value]
@@ -368,29 +386,35 @@ const allDoneFlags = computed(() => ({
 const fullDateMin = computed(() => getDateKeyInTZ(new Date()))
 
 async function refresh() {
-  accounts.value = await api.listDashboardAccounts()
-  for (const acc of accounts.value) {
-    const prevWaveplate = savedWaveplate.value[acc.id]
-    const prevCrystal = savedCrystal.value[acc.id]
-    if (prevWaveplate !== undefined && prevWaveplate !== acc.current_waveplate) {
-      triggerInputFlash(acc.id, 'waveplate')
+  if (refreshing) return
+  refreshing = true
+  try {
+    accounts.value = await api.listDashboardAccounts()
+    for (const acc of accounts.value) {
+      const prevWaveplate = savedWaveplate.value[acc.id]
+      const prevCrystal = savedCrystal.value[acc.id]
+      if (prevWaveplate !== undefined && prevWaveplate !== acc.current_waveplate) {
+        triggerInputFlash(acc.id, 'waveplate')
+      }
+      if (prevCrystal !== undefined && prevCrystal !== acc.current_waveplate_crystal) {
+        triggerInputFlash(acc.id, 'crystal')
+      }
+      manualInput.value[acc.id] = acc.current_waveplate
+      manualCrystalInput.value[acc.id] = acc.current_waveplate_crystal
+      tacetInput.value[acc.id] = acc.tacet || ''
+      savedWaveplate.value[acc.id] = acc.current_waveplate
+      savedCrystal.value[acc.id] = acc.current_waveplate_crystal
+      dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task)
+      dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest)
+      weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
+      weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
+      weeklySynthesisStatusInput.value[acc.id] = normalizeStatus(acc.weekly_synthesis_status, acc.weekly_synthesis)
+      cleanupBusyMap.value[acc.id] = false
     }
-    if (prevCrystal !== undefined && prevCrystal !== acc.current_waveplate_crystal) {
-      triggerInputFlash(acc.id, 'crystal')
-    }
-    manualInput.value[acc.id] = acc.current_waveplate
-    manualCrystalInput.value[acc.id] = acc.current_waveplate_crystal
-    tacetInput.value[acc.id] = acc.tacet || ''
-    savedWaveplate.value[acc.id] = acc.current_waveplate
-    savedCrystal.value[acc.id] = acc.current_waveplate_crystal
-    dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task)
-    dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest)
-    weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
-    weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
-    weeklySynthesisStatusInput.value[acc.id] = normalizeStatus(acc.weekly_synthesis_status, acc.weekly_synthesis)
-    cleanupBusyMap.value[acc.id] = false
+    syncHighlightedAccountId()
+  } finally {
+    refreshing = false
   }
-  syncHighlightedAccountId()
 }
 
 function formatDurationHms(totalSeconds) {
@@ -435,7 +459,7 @@ function triggerInputFlash(id, type) {
 
 function formatFullTime(v) {
   const dt = new Date(v)
-  const nowKey = getDateKeyInTZ(new Date())
+  const nowKey = getDateKeyInTZ(new Date(clockNowMs.value))
   const targetParts = getTZParts(dt)
   const targetKey = `${targetParts.year}-${targetParts.month}-${targetParts.day}`
   const diffDays = diffDateKeyDays(targetKey, nowKey)
@@ -444,6 +468,17 @@ function formatFullTime(v) {
   if (diffDays === 0) return `${hh}:${mm}`
   if (diffDays === 1) return `明天 ${hh}:${mm}`
   return `${Number(targetParts.month)}-${Number(targetParts.day)} ${hh}:${mm}`
+}
+
+function formatNextWaveplateCountdown(acc) {
+  const fullAtMs = new Date(acc.eta_waveplate_full).getTime()
+  if (Number.isNaN(fullAtMs)) return '--:-- +1'
+  const deltaSeconds = Math.max(0, Math.floor((fullAtMs - clockNowMs.value) / 1000))
+  if (deltaSeconds <= 0 || Number(acc.current_waveplate) >= 240) return '已满'
+  const nextPointSeconds = deltaSeconds % 360 || 360
+  const mm = String(Math.floor(nextPointSeconds / 60)).padStart(2, '0')
+  const ss = String(nextPointSeconds % 60).padStart(2, '0')
+  return `${mm}:${ss} +1`
 }
 
 function timeToInputValue(dt) {
@@ -515,6 +550,29 @@ function tacetClass(tacet) {
   return colorMap[tacet] || 'tacet-empty'
 }
 
+function waveplateLevelClass(id, fallback = 0) {
+  const raw = manualInput.value[id]
+  const wp = Number(raw === '' || raw === null || raw === undefined ? fallback : raw)
+  if (Number.isNaN(wp)) return 'waveplate-normal'
+  if (wp >= 240) return 'waveplate-full'
+  if (wp >= 120) return 'waveplate-high'
+  return 'waveplate-normal'
+}
+
+function combinedEnergyClass(id, fallbackWaveplate = 0, fallbackCrystal = 0) {
+  const wpRaw = manualInput.value[id]
+  const crystalRaw = manualCrystalInput.value[id]
+  const wp = Number(wpRaw === '' || wpRaw === null || wpRaw === undefined ? fallbackWaveplate : wpRaw)
+  const crystal = Number(
+    crystalRaw === '' || crystalRaw === null || crystalRaw === undefined ? fallbackCrystal : crystalRaw
+  )
+  if (Number.isNaN(wp) || Number.isNaN(crystal)) return ''
+  const total = wp + crystal
+  if (wp < 120 && total >= 120) return 'combined-alert-120'
+  if (wp >= 120 && wp < 240 && total >= 240) return 'combined-alert-240'
+  return ''
+}
+
 function normalizedId(id) {
   if (id === null || id === undefined) return ''
   return String(id)
@@ -565,8 +623,6 @@ function isAllChecklistCompleted(id) {
   return (
     isCompletedStatus(dailyTaskStatusInput.value[id]) &&
     isCompletedStatus(dailyNestStatusInput.value[id]) &&
-    isCompletedStatus(weeklyDoorStatusInput.value[id]) &&
-    isCompletedStatus(weeklyBossStatusInput.value[id]) &&
     isCompletedStatus(weeklySynthesisStatusInput.value[id])
   )
 }
@@ -587,7 +643,7 @@ async function gain(id, amount) {
   await refresh()
 }
 
-async function setWaveplate(id) {
+async function setCurrentEnergy(id) {
   const waveplateRaw = manualInput.value[id]
   const waveplate = waveplateRaw === '' || waveplateRaw === undefined || waveplateRaw === null ? 0 : Number(waveplateRaw)
   const crystalRaw = manualCrystalInput.value[id]
@@ -603,7 +659,7 @@ async function setWaveplate(id) {
   if (waveplate === savedWaveplate.value[id] && (crystal ?? savedCrystal.value[id]) === savedCrystal.value[id]) {
     return
   }
-  await api.setWaveplate(id, waveplate, crystal)
+  await api.setCurrentEnergy(id, waveplate, crystal)
   savedWaveplate.value[id] = waveplate
   savedCrystal.value[id] = crystal ?? savedCrystal.value[id]
   markEdited(id)
@@ -621,7 +677,7 @@ async function submitWaveplate(id, event = null) {
   if (savingIds.has(id)) return
   savingIds.add(id)
   try {
-    await setWaveplate(id)
+    await setCurrentEnergy(id)
   } finally {
     savingIds.delete(id)
   }
@@ -767,9 +823,8 @@ async function submitFullWaveplatePicker() {
   }
   state.saving = true
   try {
-    const missing = deltaSeconds <= 0 ? 0 : Math.ceil(deltaSeconds / 360)
-    const waveplate = Math.max(0, 240 - missing)
-    await api.setWaveplate(state.targetId, waveplate)
+    const normalizedFullAt = new Date(Date.now() + deltaSeconds * 1000).toISOString()
+    await api.setFullWaveplateTime(state.targetId, normalizedFullAt)
     markEdited(state.targetId)
     closeFullWaveplatePicker(true)
     await refresh()
@@ -845,6 +900,7 @@ onMounted(async () => {
 })
 
 watch(sortMode, () => {
+  saveStoredValue(SORT_MODE_STORAGE_KEY, sortMode.value)
   orderFrozen.value = false
   frozenOrderIds.value = []
 })

@@ -16,8 +16,15 @@ class AccountBase(BaseModel):
 
 
 class AccountCreate(AccountBase):
-    last_waveplate: int = Field(default=0, ge=0, le=240)
-    waveplate_crystal: int = Field(default=0, ge=0, le=480)
+    current_waveplate: int | None = Field(default=None, ge=0, le=240)
+    current_waveplate_crystal: int = Field(default=0, ge=0, le=480)
+    full_waveplate_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_energy_source(self):
+        if self.current_waveplate is None and self.full_waveplate_at is None:
+            raise ValueError("current_waveplate or full_waveplate_at is required")
+        return self
 
 
 class AccountUpdate(BaseModel):
@@ -27,20 +34,19 @@ class AccountUpdate(BaseModel):
     remark: str | None = None
     tacet: str | None = None
     is_active: bool | None = None
-    last_waveplate: int | None = Field(default=None, ge=0, le=240)
-    waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
+    current_waveplate: int | None = Field(default=None, ge=0, le=240)
+    current_waveplate_crystal: int | None = Field(default=None, ge=0, le=480)
+    full_waveplate_at: datetime | None = None
 
 
 class AccountOut(AccountBase):
     account_id: int
-    last_waveplate: int
-    last_waveplate_updated_at: datetime
-    waveplate_crystal: int
+    current_waveplate: int
+    current_waveplate_crystal: int
+    full_waveplate_at: datetime
+    waveplate_full_in_minutes: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class EnergySetIn(BaseModel):
@@ -68,8 +74,7 @@ class EnergyOut(BaseModel):
     id: str
     current_waveplate: int
     current_waveplate_crystal: int
-    last_waveplate: int
-    last_waveplate_updated_at: datetime
+    full_waveplate_at: datetime
     waveplate_full_in_minutes: int
     eta_waveplate_full: datetime
     warn_level: str
@@ -274,5 +279,21 @@ class CleanupSessionOut(BaseModel):
 
 class CleanupSessionManualCreateIn(BaseModel):
     account_id: int
-    biz_date: date
-    duration_sec: int = Field(ge=1, le=86400)
+    biz_date: date | None = None
+    duration_sec: int | None = Field(default=None, ge=1, le=86400)
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_mode(self):
+        has_duration_mode = self.duration_sec is not None
+        has_period_mode = self.started_at is not None or self.ended_at is not None
+        if has_duration_mode and has_period_mode:
+            raise ValueError("duration mode and period mode cannot be mixed")
+        if has_duration_mode:
+            if self.biz_date is None:
+                raise ValueError("biz_date is required when duration_sec is provided")
+            return self
+        if self.started_at is None or self.ended_at is None:
+            raise ValueError("started_at and ended_at are required when using period mode")
+        return self

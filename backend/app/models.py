@@ -32,11 +32,8 @@ class Account(Base):
     remark: Mapped[str | None] = mapped_column(Text, nullable=True)
     tacet: Mapped[str] = mapped_column(String(32), default="")
 
-    last_waveplate: Mapped[int] = mapped_column(Integer, default=0)
-    last_waveplate_updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    waveplate_crystal: Mapped[int] = mapped_column(Integer, default=0)
+    full_waveplate_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    full_waveplate_crystal: Mapped[int] = mapped_column(Integer, default=0)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

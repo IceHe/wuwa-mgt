@@ -57,8 +57,18 @@ export const api = {
   updateAccount: (id, payload) =>
     request(`/accounts/by-id/${encodeURIComponent(id)}/update`, { method: 'POST', body: JSON.stringify(payload) }),
   deleteAccount: (id) => request(`/accounts/by-id/${encodeURIComponent(id)}/delete`, { method: 'POST' }),
-  setWaveplate: (id, currentWaveplate, currentWaveplateCrystal = null) => {
+  setCurrentEnergy: (id, currentWaveplate, currentWaveplateCrystal = null) => {
     const payload = { current_waveplate: currentWaveplate }
+    if (currentWaveplateCrystal !== null && currentWaveplateCrystal !== undefined) {
+      payload.current_waveplate_crystal = currentWaveplateCrystal
+    }
+    return request(`/accounts/by-id/${encodeURIComponent(id)}/energy/set`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+  setFullWaveplateTime: (id, fullWaveplateAt, currentWaveplateCrystal = null) => {
+    const payload = { full_waveplate_at: fullWaveplateAt }
     if (currentWaveplateCrystal !== null && currentWaveplateCrystal !== undefined) {
       payload.current_waveplate_crystal = currentWaveplateCrystal
     }
@@ -124,6 +134,10 @@ export const api = {
     request('/cleanup-timer/sessions/manual', {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  deleteCleanupSession: (sessionId) =>
+    request(`/cleanup-timer/sessions/${encodeURIComponent(sessionId)}/delete`, {
+      method: 'POST',
     }),
   listTaskTemplates: () => request('/task-templates'),
   createTaskTemplate: (payload) => request('/task-templates', { method: 'POST', body: JSON.stringify(payload) }),

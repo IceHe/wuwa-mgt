@@ -9,20 +9,19 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .database import Base, engine, get_db
 from .energy import (
     add_resources,
-    clamp_waveplate,
-    clamp_waveplate_crystal,
-    normalize_resources,
-    recover_resources,
-    reverse_waveplate_from_full_time,
-    seconds_to_waveplate_full,
+    current_resources_from_full_time,
+    full_crystal_from_current_crystal,
+    full_time_from_current_resources,
+    seconds_to_waveplate_full_from_full_time,
     spend_resources,
+    validate_full_waveplate_at,
     warn_level,
 )
 from .models import Account, AccountCheckin, AccountCleanupSession, TaskInstance, TaskStatus, TaskTemplate
@@ -289,6 +288,8 @@ def ensure_account_columns() -> None:
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_waveplate INTEGER DEFAULT 0",
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_waveplate_updated_at TIMESTAMPTZ DEFAULT now()",
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS waveplate_crystal INTEGER DEFAULT 0",
+        "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS full_waveplate_at TIMESTAMPTZ",
+        "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS full_waveplate_crystal INTEGER DEFAULT 0",
         "ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tacet VARCHAR(32) DEFAULT ''",
         "ALTER TABLE accounts DROP COLUMN IF EXISTS energy_at_prev_4am",
         "ALTER TABLE accounts DROP COLUMN IF EXISTS prev_4am_at",
@@ -306,12 +307,17 @@ def ensure_account_columns() -> None:
                 "UPDATE accounts SET last_waveplate = COALESCE(last_waveplate, 0), "
                 "waveplate_crystal = COALESCE(waveplate_crystal, 0), "
                 "last_waveplate_updated_at = COALESCE(last_waveplate_updated_at, now()), "
+                "full_waveplate_at = COALESCE(full_waveplate_at, COALESCE(last_waveplate_updated_at, now()) + "
+                "(GREATEST(0, 240 - LEAST(GREATEST(COALESCE(last_waveplate, 0), 0), 240)) * INTERVAL '6 minutes')), "
+                "full_waveplate_crystal = COALESCE(full_waveplate_crystal, COALESCE(waveplate_crystal, 0)), "
                 "tacet = CASE "
                 "WHEN tacet IS NULL THEN '' "
                 "WHEN tacet IN ('未选定', '?') THEN '' "
                 "ELSE tacet END"
             )
         )
+        conn.execute(text("ALTER TABLE accounts ALTER COLUMN full_waveplate_at SET NOT NULL"))
+        conn.execute(text("ALTER TABLE accounts ALTER COLUMN full_waveplate_crystal SET DEFAULT 0"))
 
 
 def ensure_checkins_table_rename() -> None:
@@ -501,62 +507,79 @@ def resolve_period(flag_key: str, day: date) -> tuple[str, str, date]:
 
 
 def energy_payload(account: Account, now: datetime) -> EnergyOut:
-    current_wp, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+    current_wp, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
-    to_full_seconds = seconds_to_waveplate_full(account.last_waveplate, account.last_waveplate_updated_at, now)
+    to_full_seconds = seconds_to_waveplate_full_from_full_time(account.full_waveplate_at, now)
     to_full = (to_full_seconds + 59) // 60
     return EnergyOut(
         account_id=account.account_id,
         id=account.id,
         current_waveplate=current_wp,
         current_waveplate_crystal=current_crystal,
-        last_waveplate=account.last_waveplate,
-        last_waveplate_updated_at=account.last_waveplate_updated_at,
+        full_waveplate_at=account.full_waveplate_at,
         waveplate_full_in_minutes=to_full,
-        eta_waveplate_full=now + timedelta(seconds=to_full_seconds),
+        eta_waveplate_full=account.full_waveplate_at,
         warn_level=warn_level(current_wp),
     )
 
 
-def snapshot_resources_for_now(account: Account, now: datetime) -> tuple[int, int]:
-    current_wp, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+def account_payload(account: Account, now: datetime) -> AccountOut:
+    current_wp, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
-    account.last_waveplate = current_wp
-    account.waveplate_crystal = current_crystal
-    account.last_waveplate_updated_at = now
-    return current_wp, current_crystal
+    to_full_seconds = seconds_to_waveplate_full_from_full_time(account.full_waveplate_at, now)
+    to_full = (to_full_seconds + 59) // 60
+    return AccountOut(
+        account_id=account.account_id,
+        id=account.id,
+        phone_number=account.phone_number,
+        nickname=account.nickname,
+        abbr=account.abbr,
+        remark=account.remark,
+        tacet=account.tacet,
+        is_active=account.is_active,
+        current_waveplate=current_wp,
+        current_waveplate_crystal=current_crystal,
+        full_waveplate_at=account.full_waveplate_at,
+        waveplate_full_in_minutes=to_full,
+        created_at=account.created_at,
+        updated_at=account.updated_at,
+    )
 
 
 def apply_energy_set(account: Account, payload: EnergySetIn, now: datetime) -> None:
-    _, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+    _, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
     if payload.full_waveplate_at is not None:
         full_at = to_app_tz(payload.full_waveplate_at)
         try:
-            target_wp, progressed_seconds = reverse_waveplate_from_full_time(now, full_at)
+            validate_full_waveplate_at(now, full_at)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        account.last_waveplate = target_wp
-        account.last_waveplate_updated_at = now - timedelta(seconds=progressed_seconds)
+        account.full_waveplate_at = full_at
+        if payload.current_waveplate_crystal is None:
+            return
+        try:
+            account.full_waveplate_crystal = full_crystal_from_current_crystal(
+                payload.current_waveplate_crystal,
+                full_at,
+                now,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
     else:
-        account.last_waveplate = clamp_waveplate(payload.current_waveplate or 0)
-        account.last_waveplate_updated_at = now
-    if payload.current_waveplate_crystal is None:
-        account.waveplate_crystal = current_crystal
-    else:
-        account.waveplate_crystal = clamp_waveplate_crystal(payload.current_waveplate_crystal)
+        target_crystal = current_crystal if payload.current_waveplate_crystal is None else payload.current_waveplate_crystal
+        full_at, full_crystal = full_time_from_current_resources(payload.current_waveplate or 0, target_crystal, now)
+        account.full_waveplate_at = full_at
+        account.full_waveplate_crystal = full_crystal
 
 
 def get_account_by_id(db: Session, game_id: str) -> Account:
@@ -613,12 +636,34 @@ def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/auth/ping")
+def auth_ping() -> dict[str, bool]:
+    # This endpoint is intentionally lightweight and still protected by auth middleware.
+    return {"ok": True}
+
+
 @app.post("/accounts", response_model=AccountOut)
-def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> Account:
+def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> AccountOut:
     now = now_tz()
     if payload.tacet not in ALLOWED_TACET_VALUES:
         raise HTTPException(status_code=400, detail=f"unsupported tacet: {payload.tacet}")
-    wp, crystal = normalize_resources(payload.last_waveplate, payload.waveplate_crystal)
+    if payload.full_waveplate_at is not None:
+        full_waveplate_at = to_app_tz(payload.full_waveplate_at)
+        try:
+            validate_full_waveplate_at(now, full_waveplate_at)
+            full_waveplate_crystal = full_crystal_from_current_crystal(
+                payload.current_waveplate_crystal,
+                full_waveplate_at,
+                now,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    else:
+        full_waveplate_at, full_waveplate_crystal = full_time_from_current_resources(
+            payload.current_waveplate or 0,
+            payload.current_waveplate_crystal,
+            now,
+        )
     account = Account(
         id=payload.id,
         abbr=payload.abbr,
@@ -627,9 +672,8 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> Acc
         remark=payload.remark,
         tacet=payload.tacet,
         is_active=payload.is_active,
-        last_waveplate=wp,
-        waveplate_crystal=crystal,
-        last_waveplate_updated_at=now,
+        full_waveplate_at=full_waveplate_at,
+        full_waveplate_crystal=full_waveplate_crystal,
     )
     db.add(account)
     try:
@@ -638,79 +682,84 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> Acc
         db.rollback()
         raise HTTPException(status_code=409, detail="id or abbr already exists") from exc
     db.refresh(account)
-    return account
+    return account_payload(account, now)
 
 
 @app.get("/accounts", response_model=list[AccountOut])
-def list_accounts(db: Session = Depends(get_db), active_only: bool = False) -> list[Account]:
+def list_accounts(db: Session = Depends(get_db), active_only: bool = False) -> list[AccountOut]:
     stmt = select(Account).order_by(Account.created_at.desc())
     if active_only:
         stmt = stmt.where(Account.is_active.is_(True))
-    return db.scalars(stmt).all()
+    now = now_tz()
+    return [account_payload(account, now) for account in db.scalars(stmt).all()]
 
 
 @app.get("/accounts/by-id/{id}", response_model=AccountOut)
-def get_account_by_id_api(id: str, db: Session = Depends(get_db)) -> Account:
-    return get_account_by_id(db, id)
+def get_account_by_id_api(id: str, db: Session = Depends(get_db)) -> AccountOut:
+    return account_payload(get_account_by_id(db, id), now_tz())
 
 
 @app.get("/accounts/by-feature/{feature_id}", response_model=AccountOut)
-def get_account_by_feature(feature_id: str, db: Session = Depends(get_db)) -> Account:
-    return get_account_by_id(db, feature_id)
+def get_account_by_feature(feature_id: str, db: Session = Depends(get_db)) -> AccountOut:
+    return account_payload(get_account_by_id(db, feature_id), now_tz())
 
 
 @app.get("/accounts/by-player/{player_id}", response_model=AccountOut)
-def get_account_by_player(player_id: str, db: Session = Depends(get_db)) -> Account:
-    return get_account_by_id(db, player_id)
+def get_account_by_player(player_id: str, db: Session = Depends(get_db)) -> AccountOut:
+    return account_payload(get_account_by_id(db, player_id), now_tz())
 
 
 @app.patch("/accounts/{account_id}", response_model=AccountOut)
-def update_account(account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)) -> Account:
+def update_account(account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)) -> AccountOut:
     account = db.get(Account, account_id)
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
     data = payload.model_dump(exclude_unset=True)
     if "tacet" in data and data["tacet"] not in ALLOWED_TACET_VALUES:
         raise HTTPException(status_code=400, detail=f"unsupported tacet: {data['tacet']}")
-    if "last_waveplate" in data or "waveplate_crystal" in data:
-        wp, crystal = normalize_resources(
-            data.get("last_waveplate", account.last_waveplate),
-            data.get("waveplate_crystal", account.waveplate_crystal),
+    if any(key in data for key in ("current_waveplate", "current_waveplate_crystal", "full_waveplate_at")):
+        now = now_tz()
+        current_wp, current_crystal = current_resources_from_full_time(
+            account.full_waveplate_at,
+            account.full_waveplate_crystal,
+            now,
         )
-        data["last_waveplate"] = wp
-        data["waveplate_crystal"] = crystal
-        data["last_waveplate_updated_at"] = now_tz()
+        if "full_waveplate_at" in data and data["full_waveplate_at"] is not None:
+            full_waveplate_at = to_app_tz(data["full_waveplate_at"])
+            try:
+                validate_full_waveplate_at(now, full_waveplate_at)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            crystal_now = data.get("current_waveplate_crystal", current_crystal)
+            try:
+                data["full_waveplate_crystal"] = full_crystal_from_current_crystal(crystal_now, full_waveplate_at, now)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            data["full_waveplate_at"] = full_waveplate_at
+        else:
+            next_wp = data.get("current_waveplate", current_wp)
+            next_crystal = data.get("current_waveplate_crystal", current_crystal)
+            full_waveplate_at, full_waveplate_crystal = full_time_from_current_resources(next_wp, next_crystal, now)
+            data["full_waveplate_at"] = full_waveplate_at
+            data["full_waveplate_crystal"] = full_waveplate_crystal
+        data.pop("current_waveplate", None)
+        data.pop("current_waveplate_crystal", None)
     for key, value in data.items():
         setattr(account, key, value)
     db.commit()
     db.refresh(account)
-    return account
+    return account_payload(account, now_tz())
 
 
 @app.post("/accounts/{account_id}/update", response_model=AccountOut)
-def update_account_post(account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)) -> Account:
+def update_account_post(account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)) -> AccountOut:
     return update_account(account_id, payload, db)
 
 
 @app.post("/accounts/by-player/{player_id}/update", response_model=AccountOut)
-def update_account_by_player(player_id: str, payload: AccountUpdate, db: Session = Depends(get_db)) -> Account:
+def update_account_by_player(player_id: str, payload: AccountUpdate, db: Session = Depends(get_db)) -> AccountOut:
     account = get_account_by_id(db, player_id)
-    data = payload.model_dump(exclude_unset=True)
-    if "tacet" in data and data["tacet"] not in ALLOWED_TACET_VALUES:
-        raise HTTPException(status_code=400, detail=f"unsupported tacet: {data['tacet']}")
-    if "last_waveplate" in data or "waveplate_crystal" in data:
-        wp, crystal = normalize_resources(
-            data.get("last_waveplate", account.last_waveplate),
-            data.get("waveplate_crystal", account.waveplate_crystal),
-        )
-        data["last_waveplate"] = wp
-        data["waveplate_crystal"] = crystal
-        data["last_waveplate_updated_at"] = now_tz()
-    for key, value in data.items():
-        setattr(account, key, value)
-    db.commit()
-    db.refresh(account)
-    return account
+    return update_account(account.account_id, payload, db)
 
 
 @app.post("/accounts/by-id/{id}/update", response_model=AccountOut)
@@ -1053,15 +1102,33 @@ def create_cleanup_session_manual(
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
 
-    app_zone = ZoneInfo(APP_TZ)
-    started_at = datetime.combine(payload.biz_date, datetime.min.time(), tzinfo=app_zone)
-    ended_at = started_at + timedelta(seconds=payload.duration_sec)
+    if payload.duration_sec is not None:
+        app_zone = ZoneInfo(APP_TZ)
+        biz_date = payload.biz_date
+        if biz_date is None:
+            raise HTTPException(status_code=400, detail="biz_date is required for duration mode")
+        started_at = datetime.combine(biz_date, datetime.min.time(), tzinfo=app_zone)
+        ended_at = started_at + timedelta(seconds=payload.duration_sec)
+        duration_sec = payload.duration_sec
+    else:
+        if payload.started_at is None or payload.ended_at is None:
+            raise HTTPException(status_code=400, detail="started_at and ended_at are required for period mode")
+        started_at = to_app_tz(payload.started_at)
+        ended_at = to_app_tz(payload.ended_at)
+        if ended_at <= started_at:
+            raise HTTPException(status_code=400, detail="ended_at must be later than started_at")
+        duration_sec = int((ended_at - started_at).total_seconds())
+        if duration_sec <= 0:
+            raise HTTPException(status_code=400, detail="duration must be greater than 0 seconds")
+        if duration_sec > 86400:
+            raise HTTPException(status_code=400, detail="duration cannot exceed 24 hours")
+        biz_date = payload.biz_date or reset_day_tz(started_at)
     session = AccountCleanupSession(
         account_id=account.account_id,
-        biz_date=payload.biz_date,
+        biz_date=biz_date,
         started_at=started_at,
         ended_at=ended_at,
-        duration_sec=payload.duration_sec,
+        duration_sec=duration_sec,
         status="paused",
     )
     db.add(session)
@@ -1081,26 +1148,33 @@ def create_cleanup_session_manual(
     )
 
 
+@app.delete("/cleanup-timer/sessions/{session_id}")
+def delete_cleanup_session(session_id: int, db: Session = Depends(get_db)) -> dict[str, bool]:
+    session = db.get(AccountCleanupSession, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="cleanup session not found")
+    db.delete(session)
+    db.commit()
+    return {"ok": True}
+
+
+@app.post("/cleanup-timer/sessions/{session_id}/delete")
+def delete_cleanup_session_post(session_id: int, db: Session = Depends(get_db)) -> dict[str, bool]:
+    return delete_cleanup_session(session_id, db)
+
+
 @app.get("/accounts/{account_id}/energy", response_model=EnergyOut)
 def get_account_energy(account_id: int, db: Session = Depends(get_db)) -> EnergyOut:
     account = db.get(Account, account_id)
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
-    now = now_tz()
-    snapshot_resources_for_now(account, now)
-    db.commit()
-    db.refresh(account)
-    return energy_payload(account, now)
+    return energy_payload(account, now_tz())
 
 
 @app.get("/accounts/by-id/{id}/energy", response_model=EnergyOut)
 def get_account_energy_by_id(id: str, db: Session = Depends(get_db)) -> EnergyOut:
     account = get_account_by_id(db, id)
-    now = now_tz()
-    snapshot_resources_for_now(account, now)
-    db.commit()
-    db.refresh(account)
-    return energy_payload(account, now)
+    return energy_payload(account, now_tz())
 
 
 @app.get("/accounts/by-player/{player_id}/energy", response_model=EnergyOut)
@@ -1157,10 +1231,9 @@ def spend_energy(account_id: int, payload: EnergySpendIn, db: Session = Depends(
         raise HTTPException(status_code=404, detail="account not found")
 
     now = now_tz()
-    current_wp, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+    current_wp, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
     if (current_wp + current_crystal) < payload.cost:
@@ -1169,9 +1242,7 @@ def spend_energy(account_id: int, payload: EnergySpendIn, db: Session = Depends(
             detail=f"not enough waveplate: current {current_wp} + crystal {current_crystal} < cost {payload.cost}",
         )
     next_wp, next_crystal = spend_resources(current_wp, current_crystal, payload.cost)
-    account.last_waveplate = next_wp
-    account.waveplate_crystal = next_crystal
-    account.last_waveplate_updated_at = now
+    account.full_waveplate_at, account.full_waveplate_crystal = full_time_from_current_resources(next_wp, next_crystal, now)
 
     db.commit()
     db.refresh(account)
@@ -1184,10 +1255,9 @@ def spend_energy_by_id(id: str, payload: EnergySpendIn, db: Session = Depends(ge
         raise HTTPException(status_code=400, detail="cost must be one of 40, 60, 80, 120")
     account = get_account_by_id(db, id)
     now = now_tz()
-    current_wp, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+    current_wp, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
     if (current_wp + current_crystal) < payload.cost:
@@ -1196,9 +1266,7 @@ def spend_energy_by_id(id: str, payload: EnergySpendIn, db: Session = Depends(ge
             detail=f"not enough waveplate: current {current_wp} + crystal {current_crystal} < cost {payload.cost}",
         )
     next_wp, next_crystal = spend_resources(current_wp, current_crystal, payload.cost)
-    account.last_waveplate = next_wp
-    account.waveplate_crystal = next_crystal
-    account.last_waveplate_updated_at = now
+    account.full_waveplate_at, account.full_waveplate_crystal = full_time_from_current_resources(next_wp, next_crystal, now)
     db.commit()
     db.refresh(account)
     return energy_payload(account, now)
@@ -1223,16 +1291,13 @@ def gain_energy(account_id: int, payload: EnergyGainIn, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="account not found")
 
     now = now_tz()
-    current_wp, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+    current_wp, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
     next_wp, next_crystal = add_resources(current_wp, current_crystal, payload.amount)
-    account.last_waveplate = next_wp
-    account.waveplate_crystal = next_crystal
-    account.last_waveplate_updated_at = now
+    account.full_waveplate_at, account.full_waveplate_crystal = full_time_from_current_resources(next_wp, next_crystal, now)
     db.commit()
     db.refresh(account)
     return energy_payload(account, now)
@@ -1244,16 +1309,13 @@ def gain_energy_by_id(id: str, payload: EnergyGainIn, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail="amount must be one of 40, 60")
     account = get_account_by_id(db, id)
     now = now_tz()
-    current_wp, current_crystal = recover_resources(
-        account.last_waveplate,
-        account.waveplate_crystal,
-        account.last_waveplate_updated_at,
+    current_wp, current_crystal = current_resources_from_full_time(
+        account.full_waveplate_at,
+        account.full_waveplate_crystal,
         now,
     )
     next_wp, next_crystal = add_resources(current_wp, current_crystal, payload.amount)
-    account.last_waveplate = next_wp
-    account.waveplate_crystal = next_crystal
-    account.last_waveplate_updated_at = now
+    account.full_waveplate_at, account.full_waveplate_crystal = full_time_from_current_resources(next_wp, next_crystal, now)
     db.commit()
     db.refresh(account)
     return energy_payload(account, now)
@@ -1296,6 +1358,22 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
         normalized_status = raw_status if raw_status in {"todo", "done", "skipped"} else ("done" if flag.is_done else "todo")
         flags_map.setdefault(flag.account_id, {})[flag.flag_key] = normalized_status
 
+    task_counts_map: dict[int, tuple[int, int]] = {}
+    if account_ids:
+        count_rows = db.execute(
+            select(
+                TaskInstance.account_id,
+                func.coalesce(func.sum(case((TaskInstance.status == TaskStatus.todo, 1), else_=0)), 0).label("todo_count"),
+                func.coalesce(func.sum(case((TaskInstance.status == TaskStatus.done, 1), else_=0)), 0).label("done_count"),
+            )
+            .where(TaskInstance.account_id.in_(account_ids))
+            .group_by(TaskInstance.account_id)
+        ).all()
+        task_counts_map = {
+            int(account_id): (int(todo_count or 0), int(done_count or 0))
+            for account_id, todo_count, done_count in count_rows
+        }
+
     cleanup_paused_map: dict[int, int] = {}
     cleanup_running_map: dict[int, AccountCleanupSession] = {}
     if account_ids:
@@ -1322,13 +1400,12 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 cleanup_running_map[session.account_id] = session
 
     for acc in accounts:
-        current_wp, current_crystal = recover_resources(
-            acc.last_waveplate,
-            acc.waveplate_crystal,
-            acc.last_waveplate_updated_at,
+        current_wp, current_crystal = current_resources_from_full_time(
+            acc.full_waveplate_at,
+            acc.full_waveplate_crystal,
             now,
         )
-        to_full_seconds = seconds_to_waveplate_full(acc.last_waveplate, acc.last_waveplate_updated_at, now)
+        to_full_seconds = seconds_to_waveplate_full_from_full_time(acc.full_waveplate_at, now)
         to_full = (to_full_seconds + 59) // 60
         acc_flags = flags_map.get(acc.account_id, {})
         daily_task_status = acc_flags.get("daily_task", "todo")
@@ -1344,18 +1421,7 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
         if running_session:
             cleanup_total_sec += running_duration_seconds(running_session.started_at, now)
 
-        todo_count = db.scalar(
-            select(func.count(TaskInstance.id)).where(
-                TaskInstance.account_id == acc.account_id,
-                TaskInstance.status == TaskStatus.todo,
-            )
-        )
-        done_count = db.scalar(
-            select(func.count(TaskInstance.id)).where(
-                TaskInstance.account_id == acc.account_id,
-                TaskInstance.status == TaskStatus.done,
-            )
-        )
+        todo_count, done_count = task_counts_map.get(acc.account_id, (0, 0))
 
         rows.append(
             DashboardAccountOut(
@@ -1384,9 +1450,9 @@ def dashboard_accounts(db: Session = Depends(get_db)) -> list[DashboardAccountOu
                 cleanup_running=cleanup_running,
                 cleanup_running_started_at=cleanup_running_started_at,
                 waveplate_full_in_minutes=to_full,
-                eta_waveplate_full=now + timedelta(seconds=to_full_seconds),
-                todo_count=todo_count or 0,
-                done_count=done_count or 0,
+                eta_waveplate_full=acc.full_waveplate_at,
+                todo_count=todo_count,
+                done_count=done_count,
             )
         )
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import ceil
 
 WAVEPLATE_CAP = 240
@@ -27,24 +27,55 @@ def normalize_resources(waveplate: int, waveplate_crystal: int) -> tuple[int, in
     return wp, crystal
 
 
-def recover_resources(
-    waveplate: int,
-    waveplate_crystal: int,
-    last_updated_at: datetime,
+def seconds_to_waveplate_full_from_current(waveplate: int) -> int:
+    wp = clamp_waveplate(waveplate)
+    if wp >= WAVEPLATE_CAP:
+        return 0
+    return (WAVEPLATE_CAP - wp) * WAVEPLATE_RECOVER_SECONDS
+
+
+def seconds_to_waveplate_full_from_full_time(full_waveplate_at: datetime, now: datetime) -> int:
+    return max(0, int((full_waveplate_at - now).total_seconds()))
+
+
+def current_resources_from_full_time(
+    full_waveplate_at: datetime,
+    full_waveplate_crystal: int,
     now: datetime,
 ) -> tuple[int, int]:
-    wp, crystal = normalize_resources(waveplate, waveplate_crystal)
-    elapsed = max(0, int((now - last_updated_at).total_seconds()))
+    base_crystal = clamp_waveplate_crystal(full_waveplate_crystal)
+    delta_seconds = int((full_waveplate_at - now).total_seconds())
+    if delta_seconds > 0:
+        missing = min(WAVEPLATE_CAP, ceil(delta_seconds / WAVEPLATE_RECOVER_SECONDS))
+        current_wp = WAVEPLATE_CAP - missing
+        return current_wp, base_crystal
 
-    if wp < WAVEPLATE_CAP:
-        add_wp = min((elapsed // WAVEPLATE_RECOVER_SECONDS), WAVEPLATE_CAP - wp)
-        wp += add_wp
-        elapsed -= add_wp * WAVEPLATE_RECOVER_SECONDS
+    crystal_gained = max(0, int((now - full_waveplate_at).total_seconds()) // WAVEPLATE_CRYSTAL_RECOVER_SECONDS)
+    return WAVEPLATE_CAP, clamp_waveplate_crystal(base_crystal + crystal_gained)
 
-    if wp >= WAVEPLATE_CAP and crystal < WAVEPLATE_CRYSTAL_CAP:
-        crystal = min(WAVEPLATE_CRYSTAL_CAP, crystal + elapsed // WAVEPLATE_CRYSTAL_RECOVER_SECONDS)
 
-    return wp, crystal
+def full_time_from_current_resources(
+    waveplate: int,
+    current_waveplate_crystal: int,
+    now: datetime,
+) -> tuple[datetime, int]:
+    wp, crystal = normalize_resources(waveplate, current_waveplate_crystal)
+    return now + timedelta(seconds=seconds_to_waveplate_full_from_current(wp)), crystal
+
+
+def full_crystal_from_current_crystal(
+    current_waveplate_crystal: int,
+    full_waveplate_at: datetime,
+    now: datetime,
+) -> int:
+    current_crystal = clamp_waveplate_crystal(current_waveplate_crystal)
+    if full_waveplate_at > now:
+        return current_crystal
+    crystal_gained = max(0, int((now - full_waveplate_at).total_seconds()) // WAVEPLATE_CRYSTAL_RECOVER_SECONDS)
+    base_crystal = current_crystal - crystal_gained
+    if base_crystal < 0:
+        raise ValueError("current_waveplate_crystal is too small for the selected full_waveplate_at")
+    return clamp_waveplate_crystal(base_crystal)
 
 
 def spend_resources(
@@ -76,37 +107,11 @@ def add_resources(
     return wp, crystal
 
 
-def minutes_to_waveplate_full(waveplate: int) -> int:
-    wp = clamp_waveplate(waveplate)
-    if wp >= WAVEPLATE_CAP:
-        return 0
-    return (WAVEPLATE_CAP - wp) * WAVEPLATE_RECOVER_MINUTES
-
-
-def seconds_to_waveplate_full(
-    waveplate: int,
-    last_updated_at: datetime,
-    now: datetime,
-) -> int:
-    wp = clamp_waveplate(waveplate)
-    if wp >= WAVEPLATE_CAP:
-        return 0
-    elapsed = max(0, int((now - last_updated_at).total_seconds()))
-    total = (WAVEPLATE_CAP - wp) * WAVEPLATE_RECOVER_SECONDS
-    return max(0, total - elapsed)
-
-
-def reverse_waveplate_from_full_time(now: datetime, full_waveplate_at: datetime) -> tuple[int, int]:
+def validate_full_waveplate_at(now: datetime, full_waveplate_at: datetime) -> None:
     delta_seconds = int((full_waveplate_at - now).total_seconds())
-    if delta_seconds <= 0:
-        return WAVEPLATE_CAP, 0
-    max_seconds = WAVEPLATE_CAP * WAVEPLATE_RECOVER_SECONDS
+    max_seconds = seconds_to_waveplate_full_from_current(0)
     if delta_seconds > max_seconds:
         raise ValueError(f"full_waveplate_at too far in future (max {max_seconds} seconds)")
-    missing = ceil(delta_seconds / WAVEPLATE_RECOVER_SECONDS)
-    current_wp = WAVEPLATE_CAP - missing
-    progressed_seconds = (missing * WAVEPLATE_RECOVER_SECONDS) - delta_seconds
-    return current_wp, progressed_seconds
 
 
 def warn_level(waveplate: int) -> str:

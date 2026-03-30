@@ -145,13 +145,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
+import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_last_edit_map_v1'
+const SORT_MODE_STORAGE_KEY = 'wuwa_periodic_sort_mode_v1'
+const SORT_MODE_OPTIONS = ['abbr', 'created_desc', 'recent_edit']
 const STATUS_FLOW = ['todo', 'done', 'skipped']
 const accounts = ref([])
-const sortMode = ref('abbr')
+const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))
 const highlightedAccountId = ref(null)
 const lastEditedMap = ref({})
 
@@ -346,5 +349,9 @@ function syncHighlightedAccountId() {
 onMounted(async () => {
   loadLastEditedMap()
   await refresh()
+})
+
+watch(sortMode, (value) => {
+  saveStoredValue(SORT_MODE_STORAGE_KEY, value)
 })
 </script>
