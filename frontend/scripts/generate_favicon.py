@@ -11,16 +11,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DIR = ROOT / "public"
 
+M_SHAPE = [
+    (0.28, 0.75),
+    (0.28, 0.25),
+    (0.41, 0.25),
+    (0.5, 0.444),
+    (0.59, 0.25),
+    (0.72, 0.25),
+    (0.72, 0.75),
+    (0.607, 0.75),
+    (0.607, 0.467),
+    (0.5, 0.662),
+    (0.393, 0.467),
+    (0.393, 0.75),
+]
+
+M_ACCENT = [
+    (0.399, 0.281),
+    (0.425, 0.281),
+    (0.5, 0.439),
+    (0.575, 0.281),
+    (0.601, 0.281),
+    (0.5, 0.491),
+]
+
 
 def clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
-
-
-def smoothstep(edge0: float, edge1: float, value: float) -> float:
-    if edge0 == edge1:
-        return 1.0 if value >= edge1 else 0.0
-    t = clamp((value - edge0) / (edge1 - edge0))
-    return t * t * (3.0 - 2.0 * t)
 
 
 def alpha_from_signed_distance(distance: float, aa: float) -> float:
@@ -39,16 +56,6 @@ def blend(dst: tuple[float, float, float, float], src: tuple[float, float, float
     return out_r, out_g, out_b, out_a
 
 
-def circle_alpha(x: float, y: float, cx: float, cy: float, radius: float, aa: float) -> float:
-    distance = math.hypot(x - cx, y - cy) - radius
-    return alpha_from_signed_distance(distance, aa)
-
-
-def ring_alpha(x: float, y: float, cx: float, cy: float, radius: float, thickness: float, aa: float) -> float:
-    distance = abs(math.hypot(x - cx, y - cy) - radius) - thickness / 2.0
-    return alpha_from_signed_distance(distance, aa)
-
-
 def rounded_rect_alpha(x: float, y: float, width: int, height: int, radius: float, aa: float) -> float:
     px = x - width / 2.0
     py = y - height / 2.0
@@ -60,30 +67,58 @@ def rounded_rect_alpha(x: float, y: float, width: int, height: int, radius: floa
     return alpha_from_signed_distance(distance, aa)
 
 
-def in_arc(angle: float, start: float, end: float) -> bool:
-    angle = (angle + math.tau) % math.tau
-    start = (start + math.tau) % math.tau
-    end = (end + math.tau) % math.tau
-    if start <= end:
-        return start <= angle <= end
-    return angle >= start or angle <= end
+def circle_alpha(x: float, y: float, cx: float, cy: float, radius: float, aa: float) -> float:
+    distance = math.hypot(x - cx, y - cy) - radius
+    return alpha_from_signed_distance(distance, aa)
 
 
-def arc_ring_alpha(
+def scale_points(points: list[tuple[float, float]], size: int) -> list[tuple[float, float]]:
+    return [(size * px, size * py) for px, py in points]
+
+
+def offset_points(points: list[tuple[float, float]], dx: float, dy: float) -> list[tuple[float, float]]:
+    return [(px + dx, py + dy) for px, py in points]
+
+
+def distance_to_segment(
     x: float,
     y: float,
-    cx: float,
-    cy: float,
-    radius: float,
-    thickness: float,
-    start_deg: float,
-    end_deg: float,
-    aa: float,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
 ) -> float:
-    angle = math.atan2(y - cy, x - cx)
-    if not in_arc(angle, math.radians(start_deg), math.radians(end_deg)):
-        return 0.0
-    return ring_alpha(x, y, cx, cy, radius, thickness, aa)
+    dx = x2 - x1
+    dy = y2 - y1
+    if dx == 0.0 and dy == 0.0:
+        return math.hypot(x - x1, y - y1)
+    t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)
+    t = clamp(t)
+    nearest_x = x1 + dx * t
+    nearest_y = y1 + dy * t
+    return math.hypot(x - nearest_x, y - nearest_y)
+
+
+def point_in_polygon(x: float, y: float, points: list[tuple[float, float]]) -> bool:
+    inside = False
+    prev_x, prev_y = points[-1]
+    for curr_x, curr_y in points:
+        intersects = (curr_y > y) != (prev_y > y)
+        if intersects:
+            cross_x = (prev_x - curr_x) * (y - curr_y) / (prev_y - curr_y) + curr_x
+            if x < cross_x:
+                inside = not inside
+        prev_x, prev_y = curr_x, curr_y
+    return inside
+
+
+def polygon_alpha(x: float, y: float, points: list[tuple[float, float]], aa: float) -> float:
+    min_distance = min(
+        distance_to_segment(x, y, x1, y1, x2, y2)
+        for (x1, y1), (x2, y2) in zip(points, points[1:] + points[:1])
+    )
+    signed_distance = -min_distance if point_in_polygon(x, y, points) else min_distance
+    return alpha_from_signed_distance(signed_distance, aa)
 
 
 def to_rgba(hex_color: str, alpha: float = 1.0) -> tuple[float, float, float, float]:
@@ -97,75 +132,66 @@ def to_rgba(hex_color: str, alpha: float = 1.0) -> tuple[float, float, float, fl
 
 
 def render_icon(size: int) -> bytes:
-    aa = max(0.85, size / 96.0)
+    aa = max(0.9, size / 96.0)
     pixels = bytearray()
-    width = size
-    height = size
+    m_shape = scale_points(M_SHAPE, size)
+    m_shadow = offset_points(m_shape, 0.0, size * 0.03)
+    m_accent = scale_points(M_ACCENT, size)
 
-    for y_index in range(height):
+    for y_index in range(size):
         y = y_index + 0.5
-        for x_index in range(width):
+        for x_index in range(size):
             x = x_index + 0.5
-            px = x / width
-            py = y / height
+            px = x / size
+            py = y / size
 
-            bg_alpha = rounded_rect_alpha(x, y, width, height, radius=size * 0.22, aa=aa)
-            base_mix = clamp(0.58 * px + 0.42 * py)
-            highlight = math.exp(-(((px - 0.2) ** 2) / 0.03 + ((py - 0.16) ** 2) / 0.022))
-            glow = math.exp(-(((px - 0.8) ** 2) / 0.05 + ((py - 0.9) ** 2) / 0.08))
+            bg_alpha = rounded_rect_alpha(x, y, size, size, radius=size * 0.25, aa=aa)
+            base_mix = clamp(0.5 * px + 0.5 * py)
+            highlight = math.exp(-(((px - 0.24) ** 2) / 0.032 + ((py - 0.18) ** 2) / 0.026))
+            glow = math.exp(-(((px - 0.86) ** 2) / 0.06 + ((py - 0.9) ** 2) / 0.08))
 
-            base_start = to_rgba("#0f4fb5", bg_alpha)
-            base_end = to_rgba("#5aa8ff", bg_alpha)
-            bg_color = (
-                base_start[0] * (1.0 - base_mix) + base_end[0] * base_mix,
-                base_start[1] * (1.0 - base_mix) + base_end[1] * base_mix,
-                base_start[2] * (1.0 - base_mix) + base_end[2] * base_mix,
+            start = to_rgba("#0c6f42", bg_alpha)
+            end = to_rgba("#58d480", bg_alpha)
+            color = (
+                start[0] * (1.0 - base_mix) + end[0] * base_mix,
+                start[1] * (1.0 - base_mix) + end[1] * base_mix,
+                start[2] * (1.0 - base_mix) + end[2] * base_mix,
                 bg_alpha,
             )
+
             if highlight > 0.001:
-                bg_color = blend(bg_color, (1.0, 1.0, 1.0, 0.14 * highlight * bg_alpha))
+                color = blend(color, (1.0, 1.0, 1.0, 0.16 * highlight * bg_alpha))
             if glow > 0.001:
-                bg_color = blend(bg_color, (0.12, 0.83, 1.0, 0.16 * glow * bg_alpha))
+                color = blend(color, (0.73, 1.0, 0.82, 0.12 * glow * bg_alpha))
 
-            color = bg_color
+            border = rounded_rect_alpha(x, y, size, size, radius=size * 0.25, aa=aa) - rounded_rect_alpha(
+                x, y, size, size, radius=size * 0.235, aa=aa
+            )
+            if border > 0.0:
+                color = blend(color, (0.96, 1.0, 0.97, border * 0.18))
 
-            shadow_alpha = ring_alpha(x, y, size * 0.49, size * 0.51, size * 0.24, size * 0.15, aa * 1.2) * 0.16
-            if shadow_alpha > 0.0:
-                color = blend(color, (0.0, 0.07, 0.18, shadow_alpha))
+            shadow = polygon_alpha(x, y, m_shadow, aa * 1.15)
+            if shadow > 0.0:
+                color = blend(color, (0.05, 0.25, 0.13, shadow * 0.17))
 
-            ring = ring_alpha(x, y, size * 0.48, size * 0.5, size * 0.22, size * 0.135, aa)
-            if ring > 0.0:
-                color = blend(color, to_rgba("#f8fbff", ring))
-
-            accent = arc_ring_alpha(x, y, size * 0.48, size * 0.5, size * 0.22, size * 0.145, -28, 64, aa)
-            if accent > 0.0:
-                color = blend(color, to_rgba("#69e3ff", accent * 0.96))
-
-            inner = circle_alpha(x, y, size * 0.48, size * 0.5, size * 0.105, aa)
-            if inner > 0.0:
-                inner_color = (
-                    0.87 + 0.06 * highlight,
-                    0.94 + 0.03 * highlight,
-                    1.0,
-                    inner * 0.92,
+            mark = polygon_alpha(x, y, m_shape, aa)
+            if mark > 0.0:
+                mark_highlight = math.exp(-(((px - 0.37) ** 2) / 0.018 + ((py - 0.3) ** 2) / 0.05))
+                fill = (
+                    0.94 + 0.04 * mark_highlight,
+                    0.99 + 0.01 * mark_highlight,
+                    0.95 + 0.03 * mark_highlight,
+                    mark * 0.98,
                 )
-                color = blend(color, inner_color)
+                color = blend(color, fill)
 
-            core_glow = circle_alpha(x, y, size * 0.48, size * 0.5, size * 0.045, aa * 1.1)
-            if core_glow > 0.0:
-                color = blend(color, (0.08, 0.62, 1.0, core_glow * 0.4))
+            accent = polygon_alpha(x, y, m_accent, aa * 0.95)
+            if accent > 0.0:
+                color = blend(color, to_rgba("#bff4cb", accent * 0.72))
 
-            alert_shadow = circle_alpha(x, y, size * 0.77, size * 0.25, size * 0.08, aa * 1.15) * 0.18
-            if alert_shadow > 0.0:
-                color = blend(color, (0.0, 0.08, 0.2, alert_shadow))
-
-            alert = circle_alpha(x, y, size * 0.765, size * 0.24, size * 0.075, aa)
-            if alert > 0.0:
-                color = blend(color, to_rgba("#ffb347", alert))
-
-            alert_shine = circle_alpha(x, y, size * 0.748, size * 0.223, size * 0.026, aa)
-            if alert_shine > 0.0:
-                color = blend(color, (1.0, 0.98, 0.92, alert_shine * 0.68))
+            sheen = circle_alpha(x, y, size * 0.24, size * 0.18, size * 0.28, aa * 1.6)
+            if sheen > 0.0:
+                color = blend(color, (1.0, 1.0, 1.0, sheen * 0.035 * bg_alpha))
 
             r = round(clamp(color[0]) * 255)
             g = round(clamp(color[1]) * 255)
@@ -173,7 +199,7 @@ def render_icon(size: int) -> bytes:
             a = round(clamp(color[3]) * 255)
             pixels.extend((r, g, b, a))
 
-    return png_bytes(width, height, bytes(pixels))
+    return png_bytes(size, size, bytes(pixels))
 
 
 def png_chunk(chunk_type: bytes, data: bytes) -> bytes:
