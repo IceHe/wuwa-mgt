@@ -38,6 +38,12 @@ def seconds_to_waveplate_full_from_full_time(full_waveplate_at: datetime, now: d
     return max(0, int((full_waveplate_at - now).total_seconds()))
 
 
+def seconds_to_next_waveplate_recover_from_full_time(full_waveplate_at: datetime, now: datetime) -> int:
+    delta_seconds = seconds_to_waveplate_full_from_full_time(full_waveplate_at, now)
+    next_recover = delta_seconds % WAVEPLATE_RECOVER_SECONDS
+    return next_recover or WAVEPLATE_RECOVER_SECONDS
+
+
 def current_resources_from_full_time(
     full_waveplate_at: datetime,
     full_waveplate_crystal: int,
@@ -61,6 +67,20 @@ def full_time_from_current_resources(
 ) -> tuple[datetime, int]:
     wp, crystal = normalize_resources(waveplate, current_waveplate_crystal)
     return now + timedelta(seconds=seconds_to_waveplate_full_from_current(wp)), crystal
+
+
+def full_time_from_current_waveplate_and_next_recover(
+    waveplate: int,
+    next_recover_seconds: int,
+    now: datetime,
+) -> datetime:
+    wp = clamp_waveplate(waveplate)
+    if wp >= WAVEPLATE_CAP:
+        return now
+    missing = WAVEPLATE_CAP - wp
+    next_recover = max(1, min(WAVEPLATE_RECOVER_SECONDS, int(next_recover_seconds)))
+    total_seconds = ((missing - 1) * WAVEPLATE_RECOVER_SECONDS) + next_recover
+    return now + timedelta(seconds=total_seconds)
 
 
 def full_crystal_from_current_crystal(
