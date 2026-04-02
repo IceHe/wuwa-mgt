@@ -696,12 +696,12 @@ async function cycleDailyFlag(id, flagKey) {
   const current = map[id]
   const next = nextStatus(current)
   map[id] = next
-  await updateDailyFlag(id, flagKey, next)
+  await updateCheckin(id, flagKey, next)
 }
 
-async function updateDailyFlag(id, flagKey, status) {
+async function updateCheckin(id, flagKey, status) {
   try {
-    await api.setDailyFlag(id, flagKey, status)
+    await api.setCheckin(id, flagKey, status)
     markEdited(id)
   } catch (err) {
     alert(`保存失败：${err.message || '请稍后重试'}`)

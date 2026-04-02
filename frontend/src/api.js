@@ -87,15 +87,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
-  setDailyFlag: (id, flagKey, statusOrDone) => {
-    const payload = { flag_key: flagKey }
-    if (typeof statusOrDone === 'string') payload.status = statusOrDone
-    else payload.is_done = !!statusOrDone
-    return request(`/accounts/by-id/${encodeURIComponent(id)}/daily-flags`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-  },
   setCheckin: (id, flagKey, statusOrDone) => {
     const payload = { flag_key: flagKey }
     if (typeof statusOrDone === 'string') payload.status = statusOrDone
@@ -136,9 +127,7 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteCleanupSession: (sessionId) =>
-    request(`/cleanup-timer/sessions/${encodeURIComponent(sessionId)}/delete`, {
-      method: 'POST',
-    }),
+    request(`/cleanup-timer/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }),
   listTaskTemplates: () => request('/task-templates'),
   createTaskTemplate: (payload) => request('/task-templates', { method: 'POST', body: JSON.stringify(payload) }),
   generateTaskInstances: (payload) =>
@@ -151,5 +140,5 @@ export const api = {
     return request(`/task-instances${query ? `?${query}` : ''}`)
   },
   updateTaskInstance: (id, payload) =>
-    request(`/task-instances/${id}/update`, { method: 'POST', body: JSON.stringify(payload) }),
+    request(`/task-instances/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 }

@@ -73,11 +73,7 @@
   - 字段：`account_id / template_id / period_key / status / start_at / deadline_at / priority / note`
   - 唯一键：`(account_id, template_id, period_key)`
 
-服务启动时会自动执行兼容迁移，包括但不限于：
-
-- 旧账号字段重命名到当前结构
-- `account_daily_flags` 自动迁移为 `account_checkins`
-- 清日常计时表和周期任务表自动补齐
+服务启动时会自动补齐当前版本依赖的表和列，并统一检查项状态字段。
 
 ## `period_key` 规则
 
@@ -141,7 +137,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8765
 ```
 
-也可以直接使用 [backend/server.py](backend/server.py)，它会优先加载 `backend/.venv` 中的依赖，并兼容 `/api/*` 前缀：
+也可以直接使用 [backend/server.py](backend/server.py)，它会优先加载 `backend/.venv` 中的依赖，并处理 `/api/*` 前缀：
 
 ```bash
 cd backend
@@ -217,7 +213,6 @@ npm run build
 
 - `GET /dashboard/accounts`
 - `GET /periodic/accounts`
-- `POST /accounts/by-id/{id}/daily-flags`，兼容旧接口
 - `POST /accounts/by-id/{id}/checkins`
 - `POST /accounts/by-id/{id}/tacet`
 
@@ -229,7 +224,7 @@ npm run build
 - `GET /cleanup-timer/weekly-summary`
 - `GET /cleanup-timer/sessions`
 - `POST /cleanup-timer/sessions/manual`
-- `POST /cleanup-timer/sessions/{session_id}/delete`
+- `DELETE /cleanup-timer/sessions/{session_id}`
 
 ### 周期任务
 
@@ -238,5 +233,5 @@ npm run build
 - `PATCH /task-templates/{template_id}`
 - `POST /task-instances`
 - `GET /task-instances`
-- `POST /task-instances/{instance_id}/update`
+- `PATCH /task-instances/{instance_id}`
 - `POST /task-instances/generate`

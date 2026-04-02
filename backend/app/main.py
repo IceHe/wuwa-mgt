@@ -95,11 +95,6 @@ FLAG_KEY_PERIOD_TYPE = {
     "range_lahailuo_cube": "range",
     "range_music_game": "range",
 }
-LEGACY_FLAG_KEY_MAP = {
-    "daily_done": "daily_task",
-    "nest_cleared": "daily_nest",
-    "door": "weekly_door",
-}
 FOUR_WEEK_DAYS = 28
 FOUR_WEEK_TOWER_ANCHOR = date.fromisoformat(os.getenv("FOUR_WEEK_TOWER_ANCHOR", "2026-03-30"))
 FOUR_WEEK_RUINS_ANCHOR = date.fromisoformat(os.getenv("FOUR_WEEK_RUINS_ANCHOR", "2026-03-16"))
@@ -481,10 +476,6 @@ def weekly_period_key(day: date) -> str:
     return f"{monday_of_week(day).isoformat()}W"
 
 
-def normalize_flag_key(flag_key: str) -> str:
-    return LEGACY_FLAG_KEY_MAP.get(flag_key, flag_key)
-
-
 def four_week_window(anchor: date, day: date) -> tuple[date, date]:
     delta_days = (day - anchor).days
     window_index = delta_days // FOUR_WEEK_DAYS
@@ -755,16 +746,6 @@ def get_account_by_id_api(id: str, db: Session = Depends(get_db)) -> AccountOut:
     return account_payload(get_account_by_id(db, id), now_tz())
 
 
-@app.get("/accounts/by-feature/{feature_id}", response_model=AccountOut)
-def get_account_by_feature(feature_id: str, db: Session = Depends(get_db)) -> AccountOut:
-    return account_payload(get_account_by_id(db, feature_id), now_tz())
-
-
-@app.get("/accounts/by-player/{player_id}", response_model=AccountOut)
-def get_account_by_player(player_id: str, db: Session = Depends(get_db)) -> AccountOut:
-    return account_payload(get_account_by_id(db, player_id), now_tz())
-
-
 @app.patch("/accounts/{account_id}", response_model=AccountOut)
 def update_account(account_id: int, payload: AccountUpdate, db: Session = Depends(get_db)) -> AccountOut:
     account = db.get(Account, account_id)
@@ -812,20 +793,10 @@ def update_account_post(account_id: int, payload: AccountUpdate, db: Session = D
     return update_account(account_id, payload, db)
 
 
-@app.post("/accounts/by-player/{player_id}/update", response_model=AccountOut)
-def update_account_by_player(player_id: str, payload: AccountUpdate, db: Session = Depends(get_db)) -> AccountOut:
-    account = get_account_by_id(db, player_id)
-    return update_account(account.account_id, payload, db)
-
-
 @app.post("/accounts/by-id/{id}/update", response_model=AccountOut)
 def update_account_by_id(id: str, payload: AccountUpdate, db: Session = Depends(get_db)) -> Account:
-    return update_account_by_player(id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/update", response_model=AccountOut)
-def update_account_by_feature(feature_id: str, payload: AccountUpdate, db: Session = Depends(get_db)) -> Account:
-    return update_account_by_player(feature_id, payload, db)
+    account = get_account_by_id(db, id)
+    return update_account(account.account_id, payload, db)
 
 
 @app.delete("/accounts/{account_id}")
@@ -843,14 +814,6 @@ def delete_account_post(account_id: int, db: Session = Depends(get_db)) -> dict[
     return delete_account(account_id, db)
 
 
-@app.post("/accounts/by-player/{player_id}/delete")
-def delete_account_by_player(player_id: str, db: Session = Depends(get_db)) -> dict[str, bool]:
-    account = get_account_by_id(db, player_id)
-    db.delete(account)
-    db.commit()
-    return {"ok": True}
-
-
 @app.post("/accounts/by-id/{id}/delete")
 def delete_account_by_id(id: str, db: Session = Depends(get_db)) -> dict[str, bool]:
     account = get_account_by_id(db, id)
@@ -859,27 +822,18 @@ def delete_account_by_id(id: str, db: Session = Depends(get_db)) -> dict[str, bo
     return {"ok": True}
 
 
-@app.post("/accounts/by-feature/{feature_id}/delete")
-def delete_account_by_feature(feature_id: str, db: Session = Depends(get_db)) -> dict[str, bool]:
-    account = get_account_by_id(db, feature_id)
-    db.delete(account)
-    db.commit()
-    return {"ok": True}
-
-
-@app.post("/accounts/by-id/{id}/daily-flags")
-def set_daily_flag_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)) -> dict[str, bool | str]:
-    normalized_key = normalize_flag_key(payload.flag_key)
-    if normalized_key not in ALLOWED_FLAG_KEYS:
+@app.post("/accounts/by-id/{id}/checkins")
+def set_checkin_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)) -> dict[str, bool | str]:
+    if payload.flag_key not in ALLOWED_FLAG_KEYS:
         raise HTTPException(status_code=400, detail=f"unsupported flag_key: {payload.flag_key}")
     account = get_account_by_id(db, id)
-    period_type, period_key, status_date = resolve_period(normalized_key, reset_day_tz())
+    period_type, period_key, status_date = resolve_period(payload.flag_key, reset_day_tz())
     item = db.scalar(
         select(AccountCheckin).where(
             AccountCheckin.account_id == account.account_id,
             AccountCheckin.period_type == period_type,
             AccountCheckin.period_key == period_key,
-            AccountCheckin.flag_key == normalized_key,
+            AccountCheckin.flag_key == payload.flag_key,
         )
     )
     resolved_status = payload.status if payload.status is not None else ("done" if payload.is_done else "todo")
@@ -890,7 +844,7 @@ def set_daily_flag_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depe
             status_date=status_date,
             period_type=period_type,
             period_key=period_key,
-            flag_key=normalized_key,
+            flag_key=payload.flag_key,
             status=resolved_status,
             is_done=is_done,
         )
@@ -902,40 +856,7 @@ def set_daily_flag_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depe
         item.period_type = period_type
         item.period_key = period_key
     db.commit()
-    return {"ok": True, "flag_key": normalized_key, "status": resolved_status, "is_done": is_done}
-
-
-@app.post("/accounts/by-player/{player_id}/daily-flags")
-def set_daily_flag_by_player(
-    player_id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)
-) -> dict[str, bool | str]:
-    return set_daily_flag_by_id(player_id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/daily-flags")
-def set_daily_flag_by_feature(
-    feature_id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)
-) -> dict[str, bool | str]:
-    return set_daily_flag_by_id(feature_id, payload, db)
-
-
-@app.post("/accounts/by-id/{id}/checkins")
-def set_checkin_by_id(id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)) -> dict[str, bool | str]:
-    return set_daily_flag_by_id(id, payload, db)
-
-
-@app.post("/accounts/by-player/{player_id}/checkins")
-def set_checkin_by_player(
-    player_id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)
-) -> dict[str, bool | str]:
-    return set_daily_flag_by_id(player_id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/checkins")
-def set_checkin_by_feature(
-    feature_id: str, payload: DailyFlagUpdateIn, db: Session = Depends(get_db)
-) -> dict[str, bool | str]:
-    return set_daily_flag_by_id(feature_id, payload, db)
+    return {"ok": True, "flag_key": payload.flag_key, "status": resolved_status, "is_done": is_done}
 
 
 @app.post("/accounts/by-id/{id}/tacet")
@@ -946,18 +867,6 @@ def set_tacet_by_id(id: str, payload: TacetUpdateIn, db: Session = Depends(get_d
     account.tacet = payload.tacet
     db.commit()
     return {"ok": True, "tacet": payload.tacet}
-
-
-@app.post("/accounts/by-player/{player_id}/tacet")
-def set_tacet_by_player(player_id: str, payload: TacetUpdateIn, db: Session = Depends(get_db)) -> dict[str, bool | str]:
-    return set_tacet_by_id(player_id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/tacet")
-def set_tacet_by_feature(
-    feature_id: str, payload: TacetUpdateIn, db: Session = Depends(get_db)
-) -> dict[str, bool | str]:
-    return set_tacet_by_id(feature_id, payload, db)
 
 
 @app.post("/accounts/by-id/{id}/cleanup-timer/start", response_model=CleanupTimerStateOut)
@@ -1214,11 +1123,6 @@ def delete_cleanup_session(session_id: int, db: Session = Depends(get_db)) -> di
     return {"ok": True}
 
 
-@app.post("/cleanup-timer/sessions/{session_id}/delete")
-def delete_cleanup_session_post(session_id: int, db: Session = Depends(get_db)) -> dict[str, bool]:
-    return delete_cleanup_session(session_id, db)
-
-
 @app.get("/accounts/{account_id}/energy", response_model=EnergyOut)
 def get_account_energy(account_id: int, db: Session = Depends(get_db)) -> EnergyOut:
     account = db.get(Account, account_id)
@@ -1231,16 +1135,6 @@ def get_account_energy(account_id: int, db: Session = Depends(get_db)) -> Energy
 def get_account_energy_by_id(id: str, db: Session = Depends(get_db)) -> EnergyOut:
     account = get_account_by_id(db, id)
     return energy_payload(account, now_tz())
-
-
-@app.get("/accounts/by-player/{player_id}/energy", response_model=EnergyOut)
-def get_account_energy_by_player(player_id: str, db: Session = Depends(get_db)) -> EnergyOut:
-    return get_account_energy_by_id(player_id, db)
-
-
-@app.get("/accounts/by-feature/{feature_id}/energy", response_model=EnergyOut)
-def get_account_energy_by_feature(feature_id: str, db: Session = Depends(get_db)) -> EnergyOut:
-    return get_account_energy_by_id(feature_id, db)
 
 
 @app.post("/accounts/{account_id}/energy/set", response_model=EnergyOut)
@@ -1265,16 +1159,6 @@ def set_current_waveplate_by_id(id: str, payload: EnergySetIn, db: Session = Dep
     db.commit()
     db.refresh(account)
     return energy_payload(account, now)
-
-
-@app.post("/accounts/by-player/{player_id}/energy/set", response_model=EnergyOut)
-def set_current_energy_by_player(player_id: str, payload: EnergySetIn, db: Session = Depends(get_db)) -> EnergyOut:
-    return set_current_waveplate_by_id(player_id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/energy/set", response_model=EnergyOut)
-def set_current_waveplate_by_feature(feature_id: str, payload: EnergySetIn, db: Session = Depends(get_db)) -> EnergyOut:
-    return set_current_waveplate_by_id(feature_id, payload, db)
 
 
 @app.post("/accounts/{account_id}/energy/spend", response_model=EnergyOut)
@@ -1328,16 +1212,6 @@ def spend_energy_by_id(id: str, payload: EnergySpendIn, db: Session = Depends(ge
     return energy_payload(account, now)
 
 
-@app.post("/accounts/by-player/{player_id}/energy/spend", response_model=EnergyOut)
-def spend_energy_by_player(player_id: str, payload: EnergySpendIn, db: Session = Depends(get_db)) -> EnergyOut:
-    return spend_energy_by_id(player_id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/energy/spend", response_model=EnergyOut)
-def spend_energy_by_feature(feature_id: str, payload: EnergySpendIn, db: Session = Depends(get_db)) -> EnergyOut:
-    return spend_energy_by_id(feature_id, payload, db)
-
-
 @app.post("/accounts/{account_id}/energy/gain", response_model=EnergyOut)
 def gain_energy(account_id: int, payload: EnergyGainIn, db: Session = Depends(get_db)) -> EnergyOut:
     if payload.amount not in {40, 60}:
@@ -1375,16 +1249,6 @@ def gain_energy_by_id(id: str, payload: EnergyGainIn, db: Session = Depends(get_
     db.commit()
     db.refresh(account)
     return energy_payload(account, now)
-
-
-@app.post("/accounts/by-player/{player_id}/energy/gain", response_model=EnergyOut)
-def gain_energy_by_player(player_id: str, payload: EnergyGainIn, db: Session = Depends(get_db)) -> EnergyOut:
-    return gain_energy_by_id(player_id, payload, db)
-
-
-@app.post("/accounts/by-feature/{feature_id}/energy/gain", response_model=EnergyOut)
-def gain_energy_by_feature(feature_id: str, payload: EnergyGainIn, db: Session = Depends(get_db)) -> EnergyOut:
-    return gain_energy_by_id(feature_id, payload, db)
 
 
 @app.get("/dashboard/accounts", response_model=list[DashboardAccountOut])
@@ -1684,11 +1548,6 @@ def update_task_instance(instance_id: int, payload: TaskInstanceUpdate, db: Sess
     db.commit()
     db.refresh(model)
     return model
-
-
-@app.post("/task-instances/{instance_id}/update", response_model=TaskInstanceOut)
-def update_task_instance_post(instance_id: int, payload: TaskInstanceUpdate, db: Session = Depends(get_db)) -> TaskInstance:
-    return update_task_instance(instance_id, payload, db)
 
 
 @app.post("/task-instances/generate", response_model=TaskGenerateOut)
