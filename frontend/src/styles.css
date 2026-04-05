@@ -184,6 +184,22 @@ nav a.router-link-active {
   text-align: right;
 }
 
+.cleanup-total-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid #d8e2f3;
+  border-radius: 999px;
+  background: #f8fbff;
+}
+
+.cleanup-total-indicator-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #0f3b8a;
+}
+
 @keyframes pie-blink {
   0% {
     transform: scale(1);
@@ -992,10 +1008,16 @@ tr.edited td {
   border-bottom: 1px solid #e0b95a;
 }
 
-tr.all-done-row td {
+tr.all-done-row td:not(.cleanup-active-cell) {
   box-shadow: inset 0 0 0 9999px rgba(241, 247, 243, 0.45);
   opacity: 0.46;
   filter: saturate(45%);
+}
+
+tr.all-done-row td.cleanup-active-cell {
+  box-shadow: inset 0 0 0 9999px rgba(241, 247, 243, 0.45);
+  opacity: 1;
+  filter: none;
 }
 
 input,

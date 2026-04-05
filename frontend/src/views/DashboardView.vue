@@ -14,6 +14,10 @@
           ></div>
           <span class="refresh-text">{{ countdownSeconds }}s</span>
         </div>
+        <div class="cleanup-total-indicator" title="当前所有账号清日常总时长">
+          <span class="meta">当前清日常总时长</span>
+          <strong class="cleanup-total-indicator-text">{{ formatDurationHms(currentCleanupTotalSeconds) }}</strong>
+        </div>
       </div>
       <div class="actions" style="align-items: center">
         <label style="max-width: 220px">
@@ -142,7 +146,7 @@
               <button class="btn-spend" @click="spend(acc.id, 60)">-60</button>
             </div>
           </td>
-          <td>
+          <td :class="{ 'cleanup-active-cell': acc.cleanup_running }">
             <div :class="['cleanup-duration', { 'is-running': acc.cleanup_running }]">
               {{ formatDurationHms(getCleanupDisplaySeconds(acc)) }}
             </div>
@@ -375,6 +379,9 @@ const countdownProgress = computed(() => {
 })
 
 const countdownRemainProgress = computed(() => 1 - countdownProgress.value)
+const currentCleanupTotalSeconds = computed(() => (
+  accounts.value.reduce((sum, acc) => sum + getCleanupDisplaySeconds(acc), 0)
+))
 
 const allDoneFlags = computed(() => ({
   daily_task: isAllCompleted(dailyTaskStatusInput.value),
