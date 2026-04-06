@@ -155,6 +155,7 @@ go test ./...
 
 - `scripts/build_backend.sh` 会在 `backend/` 目录执行 `go build`
 - 输出文件为 `backend/bin/wuwa-mgt-backend`
+- `backend/bin/` 只是本地构建产物目录，不纳入版本控制
 - `scripts/start_backend.sh` 直接启动这个二进制
 - `scripts/restart_services.sh` 会先重新构建后端，再重启 `wuwa-mgt-backend.service`
 
