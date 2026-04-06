@@ -5,7 +5,7 @@
 ## 技术栈
 
 - 前端：Vue 3 + Vue Router + Vite
-- 后端：FastAPI + SQLAlchemy + PostgreSQL
+- 后端：Go + `net/http` + `database/sql` + `pgx` + PostgreSQL
 - 部署：systemd + Nginx
 
 ## 功能概览
@@ -119,9 +119,10 @@ CURRENT_HV_START=2026-03-26
 
 ## 目录结构
 
-- `backend/`：FastAPI 服务与测试
+- `backend/cmd/server`：Go 服务入口
+- `backend/internal/app`：Go 业务逻辑、HTTP 路由、迁移与测试
 - `frontend/`：Vue 前端源码
-- `scripts/`：本地启动与服务重启脚本
+- `scripts/`：构建、启动与服务重启脚本
 - `deploy/nginx/`：Nginx 配置
 
 ## 本地开发
@@ -131,17 +132,36 @@ CURRENT_HV_START=2026-03-26
 ```bash
 cd backend
 cp .env.example .env
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8765
+go run ./cmd/server 8765
 ```
 
-也可以直接使用 [backend/server.py](backend/server.py)，它会优先加载 `backend/.venv` 中的依赖，并处理 `/api/*` 前缀：
+也可以先构建再运行：
+
+```bash
+./scripts/build_backend.sh
+./scripts/start_backend.sh
+```
+
+服务默认监听 `8765` 端口，并同时兼容 `/api/*` 前缀。
+
+### 后端测试
 
 ```bash
 cd backend
-python3 server.py 8765
+go test ./...
+```
+
+### 后端构建产物
+
+- `scripts/build_backend.sh` 会在 `backend/` 目录执行 `go build`
+- 输出文件为 `backend/bin/wuwa-mgt-backend`
+- `scripts/start_backend.sh` 直接启动这个二进制
+- `scripts/restart_services.sh` 会先重新构建后端，再重启 `wuwa-mgt-backend.service`
+
+因此只要改了 Go 后端代码，生产更新流程就是：
+
+```bash
+./scripts/restart_services.sh
 ```
 
 ### 前端开发
