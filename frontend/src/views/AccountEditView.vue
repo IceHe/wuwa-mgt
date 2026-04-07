@@ -77,7 +77,6 @@
       />
       <button class="primary" @click="setByFullWaveplateTime">按满体时间倒推</button>
     </div>
-
     <hr style="border: none; border-top: 1px solid #dce3f1; margin: 14px 0" />
     <h3>删除账号</h3>
     <div class="actions">

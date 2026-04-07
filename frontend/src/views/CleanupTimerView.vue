@@ -22,7 +22,7 @@
       </div>
       <div class="cleanup-summary-card">
         <div class="meta">总时长</div>
-        <div class="cleanup-total-text">{{ formatDurationHms(weeklySummary.total_duration_sec || 0) }}</div>
+        <div class="cleanup-total-text">{{ formatDurationMmSs(weeklySummary.total_duration_sec || 0) }}</div>
       </div>
     </div>
 
@@ -90,7 +90,7 @@
         <tbody>
           <tr v-for="item in weeklySummary.daily || []" :key="item.biz_date">
             <td>{{ item.biz_date }}</td>
-            <td>{{ formatDurationHms(item.duration_sec) }}</td>
+            <td>{{ formatDurationMmSs(item.duration_sec) }}</td>
           </tr>
         </tbody>
       </table>
@@ -107,7 +107,7 @@
         <tbody>
           <tr v-for="item in weeklySummary.by_account || []" :key="item.account_id">
             <td>{{ item.abbr }} / {{ item.id }} / {{ item.nickname }}</td>
-            <td>{{ formatDurationHms(item.duration_sec) }}</td>
+            <td>{{ formatDurationMmSs(item.duration_sec) }}</td>
           </tr>
         </tbody>
       </table>
@@ -132,7 +132,7 @@
             <td>{{ row.account_abbr }} / {{ row.account_game_id }}</td>
             <td>{{ formatDateTime(row.started_at) }}</td>
             <td>{{ row.ended_at ? formatDateTime(row.ended_at) : '-' }}</td>
-            <td>{{ formatDurationHms(row.status === 'running' ? runningDurationSec(row.started_at) : row.duration_sec) }}</td>
+            <td>{{ formatDurationMmSs(row.status === 'running' ? runningDurationSec(row.started_at) : row.duration_sec) }}</td>
             <td>{{ row.status === 'running' ? '进行中' : '已暂停' }}</td>
             <td>
               <button
@@ -210,12 +210,11 @@ function getLaterDateTimeLocalText(deltaSeconds) {
   return `${y}-${m}-${d}T${hh}:${mm}:${ss}`
 }
 
-function formatDurationHms(totalSeconds) {
+function formatDurationMmSs(totalSeconds) {
   const sec = Math.max(0, Number(totalSeconds) || 0)
-  const hh = String(Math.floor(sec / 3600)).padStart(2, '0')
-  const mm = String(Math.floor((sec % 3600) / 60)).padStart(2, '0')
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0')
   const ss = String(sec % 60).padStart(2, '0')
-  return `${hh}:${mm}:${ss}`
+  return `${mm}:${ss}`
 }
 
 function formatDateTime(v) {

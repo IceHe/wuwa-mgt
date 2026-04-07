@@ -1075,12 +1075,22 @@ func (a *App) changeEnergy(w http.ResponseWriter, r *http.Request, account Accou
 	}
 	ctx, cancel := a.withTimeout(r)
 	defer cancel()
-	row := a.db.QueryRowContext(ctx, `UPDATE accounts SET full_waveplate_at = $2, full_waveplate_crystal = $3, updated_at = now()
+	tx, err := a.db.BeginTx(ctx, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer tx.Rollback()
+	row := tx.QueryRowContext(ctx, `UPDATE accounts SET full_waveplate_at = $2, full_waveplate_crystal = $3, updated_at = now()
 		WHERE account_id = $1
 		RETURNING account_id, id, abbr, nickname, phone_number, remark, tacet, full_waveplate_at, full_waveplate_crystal, is_active, created_at, updated_at`,
 		account.AccountID, account.FullWaveplateAt, account.FullWaveplateCrystal)
 	updated, err := scanAccount(row)
 	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := tx.Commit(); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
