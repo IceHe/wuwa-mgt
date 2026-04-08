@@ -1397,18 +1397,23 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		"monthly_tower_exchange",
 		"four_week_tower",
 		"four_week_ruins",
-		"range_lahailuo_cube",
+		"range_plate",
 		"range_music_game",
 	}
 	expectedSet := map[string]struct{}{}
+	periodWindows := map[string]PeriodicWindowOut{}
 	today := a.today()
 	for _, flagKey := range trackedKeys {
-		periodType, periodKey, _, err := a.resolvePeriod(flagKey, today)
+		periodType, periodKey, start, end, err := a.resolvePeriodWindow(flagKey, today)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		expectedSet[periodType+"|"+periodKey] = struct{}{}
+		periodWindows[flagKey] = PeriodicWindowOut{
+			Start: start.Format("2006-01-02"),
+			End:   end.Format("2006-01-02"),
+		}
 	}
 	inClause, accountArgs := intInQueryWithStart("%s", accountIDs, 1)
 	accountQuery := fmt.Sprintf(`SELECT account_id, status_date, period_type, period_key, flag_key, status, is_done
@@ -1448,7 +1453,7 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		mte := defaultStatus(flags["monthly_tower_exchange"])
 		fwt := defaultStatus(flags["four_week_tower"])
 		fwr := defaultStatus(flags["four_week_ruins"])
-		rlc := defaultStatus(flags["range_lahailuo_cube"])
+		rp := defaultStatus(flags["range_plate"])
 		rmg := defaultStatus(flags["range_music_game"])
 		out = append(out, PeriodicAccountOut{
 			AccountID:                       account.AccountID,
@@ -1458,6 +1463,7 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 			PhoneNumber:                     accountPhonePtr(account.PhoneNumber),
 			CreatedAt:                       account.CreatedAt,
 			UpdatedAt:                       account.UpdatedAt,
+			PeriodWindows:                   periodWindows,
 			VersionMatrixSoldier:            isDoneStatus(vms),
 			VersionMatrixSoldierStatus:      vms,
 			VersionSmallCoralExchange:       isDoneStatus(vsce),
@@ -1474,8 +1480,8 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 			FourWeekTowerStatus:             fwt,
 			FourWeekRuins:                   isDoneStatus(fwr),
 			FourWeekRuinsStatus:             fwr,
-			RangeLahailuoCube:               isDoneStatus(rlc),
-			RangeLahailuoCubeStatus:         rlc,
+			RangePlate:                      isDoneStatus(rp),
+			RangePlateStatus:                rp,
 			RangeMusicGame:                  isDoneStatus(rmg),
 			RangeMusicGameStatus:            rmg,
 		})

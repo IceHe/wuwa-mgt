@@ -21,8 +21,8 @@ type Config struct {
 	FourWeekRuinsAnchor        time.Time
 	CurrentFVStart             time.Time
 	CurrentHVStart             time.Time
-	LahailuoRangeStart         time.Time
-	LahailuoRangeEnd           time.Time
+	PlateRangeStart            time.Time
+	PlateRangeEnd              time.Time
 	MusicGameRangeStart        time.Time
 	MusicGameRangeEnd          time.Time
 	Host                       string
@@ -66,10 +66,10 @@ func LoadConfig(root string) (Config, error) {
 		AuthValidateTimeoutSeconds: getenvFloat("AUTH_VALIDATE_TIMEOUT_SECONDS", 3),
 		FourWeekTowerAnchor:        mustDateInLocation("FOUR_WEEK_TOWER_ANCHOR", "2026-03-30", loc),
 		FourWeekRuinsAnchor:        mustDateInLocation("FOUR_WEEK_RUINS_ANCHOR", "2026-03-16", loc),
-		CurrentFVStart:             mustDateInLocation("CURRENT_FV_START", "2026-03-26", loc),
-		CurrentHVStart:             mustDateInLocation("CURRENT_HV_START", "2026-03-26", loc),
-		LahailuoRangeStart:         mustDateInLocation("", "2026-03-26", loc),
-		LahailuoRangeEnd:           mustDateInLocation("", "2026-04-13", loc),
+		CurrentFVStart:             mustDateInLocation("CURRENT_FV_START", "2026-03-19", loc),
+		CurrentHVStart:             mustDateInLocation("CURRENT_HV_START", "2026-03-19", loc),
+		PlateRangeStart:            mustDateInLocation("", "2026-03-26", loc),
+		PlateRangeEnd:              mustDateInLocation("", "2026-04-13", loc),
 		MusicGameRangeStart:        mustDateInLocation("", "2026-03-19", loc),
 		MusicGameRangeEnd:          mustDateInLocation("", "2026-04-29", loc),
 		Host:                       getenv("HOST", "0.0.0.0"),

@@ -17,6 +17,11 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+const (
+	defaultFullVersionDays = 42
+	defaultHalfVersionDays = 21
+)
+
 var (
 	allowedFlagKeys = map[string]string{
 		"daily_task":                   "daily",
@@ -32,7 +37,7 @@ var (
 		"monthly_tower_exchange":       "monthly",
 		"four_week_tower":              "four_week",
 		"four_week_ruins":              "four_week",
-		"range_lahailuo_cube":          "range",
+		"range_plate":                  "range",
 		"range_music_game":             "range",
 	}
 	allowedTacetValues = map[string]struct{}{
@@ -616,39 +621,48 @@ func rangePeriodKey(start, end time.Time) string {
 	return start.Format("2006-01-02") + "_" + end.Format("2006-01-02")
 }
 
-func (a *App) resolvePeriod(flagKey string, day time.Time) (string, string, time.Time, error) {
+func (a *App) resolvePeriodWindow(flagKey string, day time.Time) (string, string, time.Time, time.Time, error) {
 	periodType, ok := allowedFlagKeys[flagKey]
 	if !ok {
-		return "", "", time.Time{}, fmt.Errorf("unsupported flag_key: %s", flagKey)
+		return "", "", time.Time{}, time.Time{}, fmt.Errorf("unsupported flag_key: %s", flagKey)
 	}
 	switch periodType {
 	case "daily":
-		return periodType, day.Format("2006-01-02"), day, nil
+		return periodType, day.Format("2006-01-02"), day, day, nil
 	case "weekly":
 		monday := mondayOfWeek(day)
-		return periodType, weeklyPeriodKey(day), monday, nil
+		return periodType, weeklyPeriodKey(day), monday, monday.AddDate(0, 0, 6), nil
 	case "monthly":
 		start := time.Date(day.Year(), day.Month(), 1, 0, 0, 0, 0, day.Location())
-		return periodType, day.Format("2006-01"), start, nil
+		end := start.AddDate(0, 1, 0).AddDate(0, 0, -1)
+		return periodType, day.Format("2006-01"), start, end, nil
 	case "fv":
-		return periodType, "fv-" + a.cfg.CurrentFVStart.Format("2006-01-02"), a.cfg.CurrentFVStart, nil
+		return periodType, "fv-" + a.cfg.CurrentFVStart.Format("2006-01-02"), a.cfg.CurrentFVStart, a.cfg.CurrentFVStart.AddDate(0, 0, defaultFullVersionDays-1), nil
 	case "hv":
-		return periodType, "hv-" + a.cfg.CurrentHVStart.Format("2006-01-02"), a.cfg.CurrentHVStart, nil
+		return periodType, "hv-" + a.cfg.CurrentHVStart.Format("2006-01-02"), a.cfg.CurrentHVStart, a.cfg.CurrentHVStart.AddDate(0, 0, defaultHalfVersionDays-1), nil
 	case "four_week":
 		anchor := a.cfg.FourWeekRuinsAnchor
 		if flagKey == "four_week_tower" {
 			anchor = a.cfg.FourWeekTowerAnchor
 		}
 		start, end := fourWeekWindow(anchor, day)
-		return periodType, rangePeriodKey(start, end), start, nil
+		return periodType, rangePeriodKey(start, end), start, end, nil
 	case "range":
 		if flagKey == "range_music_game" {
-			return periodType, rangePeriodKey(a.cfg.MusicGameRangeStart, a.cfg.MusicGameRangeEnd), a.cfg.MusicGameRangeStart, nil
+			return periodType, rangePeriodKey(a.cfg.MusicGameRangeStart, a.cfg.MusicGameRangeEnd), a.cfg.MusicGameRangeStart, a.cfg.MusicGameRangeEnd, nil
 		}
-		return periodType, rangePeriodKey(a.cfg.LahailuoRangeStart, a.cfg.LahailuoRangeEnd), a.cfg.LahailuoRangeStart, nil
+		return periodType, rangePeriodKey(a.cfg.PlateRangeStart, a.cfg.PlateRangeEnd), a.cfg.PlateRangeStart, a.cfg.PlateRangeEnd, nil
 	default:
-		return "", "", time.Time{}, fmt.Errorf("unsupported period type for flag: %s", flagKey)
+		return "", "", time.Time{}, time.Time{}, fmt.Errorf("unsupported period type for flag: %s", flagKey)
 	}
+}
+
+func (a *App) resolvePeriod(flagKey string, day time.Time) (string, string, time.Time, error) {
+	periodType, periodKey, start, _, err := a.resolvePeriodWindow(flagKey, day)
+	if err != nil {
+		return "", "", time.Time{}, err
+	}
+	return periodType, periodKey, start, nil
 }
 
 func accountPhonePtr(value sql.NullString) *string {

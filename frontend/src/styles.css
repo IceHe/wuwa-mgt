@@ -434,7 +434,7 @@ table {
 .remark-chip {
   width: 100%;
   display: inline-block;
-  padding: 3px 6px;
+  padding: 2px 6px;
   border: 1px solid #dce3f1;
   border-radius: 10px;
   background: #f8fafc;
@@ -446,15 +446,15 @@ table {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  min-height: calc(1.05em * 3 + 6px);
+  min-height: calc(1.05em + 4px);
 }
 
 .remark-chip.long {
   font-size: 10px;
   line-height: 1;
-  min-height: calc(1em * 3 + 6px);
+  min-height: calc(1em + 4px);
 }
 
 .remark-chip:hover {
@@ -581,7 +581,7 @@ table {
   background: #eefaf1;
 }
 
-.periodic-table th.col-range-lahailuo {
+.periodic-table th.col-range-plate {
   color: #b91c1c;
   background: #fff1f1;
 }
@@ -628,6 +628,121 @@ table {
 }
 
 .periodic-table tbody td:nth-child(11) {
+  background: #fff2ff;
+}
+
+.periodic-beta-table {
+  min-width: max-content;
+}
+
+.periodic-beta-table .beta-activity-col {
+  min-width: 150px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #f8fbff;
+}
+
+.periodic-beta-table thead .beta-activity-col {
+  z-index: 3;
+  background: linear-gradient(180deg, #f6f9ff 0%, #edf3fd 100%);
+}
+
+.periodic-beta-table .beta-account-col {
+  min-width: 72px;
+  vertical-align: middle;
+  background: #f8fbff;
+}
+
+.periodic-beta-table .beta-account-highlight {
+  box-shadow: inset 0 0 0 9999px rgba(255, 214, 102, 0.26);
+}
+
+.beta-account-main,
+.beta-activity-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.beta-account-main {
+  flex-wrap: wrap;
+}
+
+.beta-account-main-compact {
+  justify-content: center;
+}
+
+.beta-account-sub,
+.beta-activity-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.25;
+}
+
+.periodic-beta-table .beta-status-cell {
+  text-align: center;
+}
+
+.periodic-beta-table .status-item {
+  justify-content: center;
+  width: 100%;
+}
+
+.periodic-beta-table .status-toggle {
+  width: 100%;
+  min-width: 54px;
+}
+
+.periodic-beta-table .beta-header-version-matrix,
+.periodic-beta-table .beta-cell-version-matrix {
+  background: #f2f4ff;
+}
+
+.periodic-beta-table .beta-header-version-coral,
+.periodic-beta-table .beta-cell-version-coral {
+  background: #fff1f7;
+}
+
+.periodic-beta-table .beta-header-version-hologram,
+.periodic-beta-table .beta-cell-version-hologram {
+  background: #effbff;
+}
+
+.periodic-beta-table .beta-header-version-template,
+.periodic-beta-table .beta-cell-version-template {
+  background: #effaf5;
+}
+
+.periodic-beta-table .beta-header-hv-trial,
+.periodic-beta-table .beta-cell-hv-trial {
+  background: #f5f1ff;
+}
+
+.periodic-beta-table .beta-header-monthly-tower,
+.periodic-beta-table .beta-cell-monthly-tower {
+  background: #fff4ec;
+}
+
+.periodic-beta-table .beta-header-fw-tower,
+.periodic-beta-table .beta-cell-fw-tower {
+  background: #eef4ff;
+}
+
+.periodic-beta-table .beta-header-fw-ruins,
+.periodic-beta-table .beta-cell-fw-ruins {
+  background: #eefaf1;
+}
+
+.periodic-beta-table .beta-header-range-plate,
+.periodic-beta-table .beta-cell-range-plate {
+  background: #fff1f1;
+}
+
+.periodic-beta-table .beta-header-range-music,
+.periodic-beta-table .beta-cell-range-music {
   background: #fff2ff;
 }
 
@@ -844,7 +959,7 @@ table {
   color: #15803d;
 }
 
-.status-item.flag-range-lahailuo .status-label {
+.status-item.flag-range-plate .status-label {
   color: #b91c1c;
 }
 

@@ -46,7 +46,7 @@
             <th class="col-monthly-tower">深塔兑换所</th>
             <th class="col-fw-tower">深塔</th>
             <th class="col-fw-ruins">海墟</th>
-            <th class="col-range-lahailuo">填方块</th>
+            <th class="col-range-plate">餐盘</th>
             <th class="col-range-music">音游</th>
           </tr>
         </thead>
@@ -124,9 +124,9 @@
               </label>
             </td>
             <td>
-              <label :class="['status-item', 'flag-range-lahailuo', statusClass(rangeLahailuoCubeInput[acc.id]), { 'flag-all-done': allDoneFlags.range_lahailuo_cube }]">
-                <button type="button" class="status-toggle" :title="statusLabel(rangeLahailuoCubeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'range_lahailuo_cube')">
-                  {{ statusLabel(rangeLahailuoCubeInput[acc.id]) }}
+              <label :class="['status-item', 'flag-range-plate', statusClass(rangePlateInput[acc.id]), { 'flag-all-done': allDoneFlags.range_plate }]">
+                <button type="button" class="status-toggle" :title="statusLabel(rangePlateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'range_plate')">
+                  {{ statusLabel(rangePlateInput[acc.id]) }}
                 </button>
               </label>
             </td>
@@ -166,7 +166,7 @@ const hvTrialCharacterInput = ref({})
 const monthlyTowerExchangeInput = ref({})
 const fourWeekTowerInput = ref({})
 const fourWeekRuinsInput = ref({})
-const rangeLahailuoCubeInput = ref({})
+const rangePlateInput = ref({})
 const rangeMusicGameInput = ref({})
 
 const sortedAccounts = computed(() => {
@@ -196,7 +196,7 @@ const allDoneFlags = computed(() => ({
   monthly_tower_exchange: isAllCompleted(monthlyTowerExchangeInput.value),
   four_week_tower: isAllCompleted(fourWeekTowerInput.value),
   four_week_ruins: isAllCompleted(fourWeekRuinsInput.value),
-  range_lahailuo_cube: isAllCompleted(rangeLahailuoCubeInput.value),
+  range_plate: isAllCompleted(rangePlateInput.value),
   range_music_game: isAllCompleted(rangeMusicGameInput.value),
 }))
 
@@ -255,7 +255,7 @@ function statusMapByKey(flagKey) {
   if (flagKey === 'monthly_tower_exchange') return monthlyTowerExchangeInput.value
   if (flagKey === 'four_week_tower') return fourWeekTowerInput.value
   if (flagKey === 'four_week_ruins') return fourWeekRuinsInput.value
-  if (flagKey === 'range_lahailuo_cube') return rangeLahailuoCubeInput.value
+  if (flagKey === 'range_plate') return rangePlateInput.value
   return rangeMusicGameInput.value
 }
 
@@ -276,7 +276,7 @@ async function refresh() {
     monthlyTowerExchangeInput.value[acc.id] = normalizeStatus(acc.monthly_tower_exchange_status, acc.monthly_tower_exchange)
     fourWeekTowerInput.value[acc.id] = normalizeStatus(acc.four_week_tower_status, acc.four_week_tower)
     fourWeekRuinsInput.value[acc.id] = normalizeStatus(acc.four_week_ruins_status, acc.four_week_ruins)
-    rangeLahailuoCubeInput.value[acc.id] = normalizeStatus(acc.range_lahailuo_cube_status, acc.range_lahailuo_cube)
+    rangePlateInput.value[acc.id] = normalizeStatus(acc.range_plate_status, acc.range_plate)
     rangeMusicGameInput.value[acc.id] = normalizeStatus(acc.range_music_game_status, acc.range_music_game)
   }
   syncHighlightedAccountId()

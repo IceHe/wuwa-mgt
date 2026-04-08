@@ -5,6 +5,7 @@
       <nav>
         <RouterLink to="/">每日每周</RouterLink>
         <RouterLink to="/periodic">周期活动</RouterLink>
+        <RouterLink to="/periodic-beta">周期活动beta</RouterLink>
         <RouterLink to="/cleanup-timer">清日常时长</RouterLink>
         <RouterLink to="/manage/accounts">账号管理</RouterLink>
       </nav>

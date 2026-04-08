@@ -121,6 +121,11 @@ type DashboardAccountOut struct {
 	DoneCount               int        `json:"done_count"`
 }
 
+type PeriodicWindowOut struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
+}
+
 type PeriodicAccountOut struct {
 	AccountID                       int       `json:"account_id"`
 	ID                              string    `json:"id"`
@@ -129,6 +134,7 @@ type PeriodicAccountOut struct {
 	PhoneNumber                     *string   `json:"phone_number"`
 	CreatedAt                       time.Time `json:"created_at"`
 	UpdatedAt                       time.Time `json:"updated_at"`
+	PeriodWindows                   map[string]PeriodicWindowOut `json:"period_windows"`
 	VersionMatrixSoldier            bool      `json:"version_matrix_soldier"`
 	VersionMatrixSoldierStatus      string    `json:"version_matrix_soldier_status"`
 	VersionSmallCoralExchange       bool      `json:"version_small_coral_exchange"`
@@ -145,8 +151,8 @@ type PeriodicAccountOut struct {
 	FourWeekTowerStatus             string    `json:"four_week_tower_status"`
 	FourWeekRuins                   bool      `json:"four_week_ruins"`
 	FourWeekRuinsStatus             string    `json:"four_week_ruins_status"`
-	RangeLahailuoCube               bool      `json:"range_lahailuo_cube"`
-	RangeLahailuoCubeStatus         string    `json:"range_lahailuo_cube_status"`
+	RangePlate                      bool      `json:"range_plate"`
+	RangePlateStatus                string    `json:"range_plate_status"`
 	RangeMusicGame                  bool      `json:"range_music_game"`
 	RangeMusicGameStatus            string    `json:"range_music_game_status"`
 }

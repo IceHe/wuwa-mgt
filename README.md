@@ -25,7 +25,7 @@
 - 每半版本：`角色试用`
 - 每月：`深塔兑换所`
 - 每四周：`深塔 / 海墟`
-- 限时活动：`填方块 / 音游`
+- 限时活动：`餐盘 / 音游`
 - 检查项状态支持三态切换：`todo / done / skipped`
 
 ### `清日常计时明细`
@@ -98,8 +98,8 @@ AUTH_REQUIRED_PERMISSION=manage
 AUTH_VALIDATE_TIMEOUT_SECONDS=3
 FOUR_WEEK_TOWER_ANCHOR=2026-03-30
 FOUR_WEEK_RUINS_ANCHOR=2026-03-16
-CURRENT_FV_START=2026-03-26
-CURRENT_HV_START=2026-03-26
+CURRENT_FV_START=2026-03-19
+CURRENT_HV_START=2026-03-19
 ```
 
 说明：
