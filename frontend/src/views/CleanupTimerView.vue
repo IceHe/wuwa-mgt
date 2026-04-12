@@ -28,6 +28,10 @@
 
     <div class="cleanup-summary-card" style="margin-top: 10px">
       <div class="meta" style="margin-bottom: 6px">手动补录</div>
+      <div v-if="manualSuccess.message" class="cleanup-manual-success">
+        <strong>补录成功</strong>
+        <span>{{ manualSuccess.message }}</span>
+      </div>
       <div class="cleanup-manual-form">
         <label>
           指定用户
@@ -167,6 +171,10 @@ const weeklySummary = ref({
 const sessions = ref([])
 const clockNowMs = ref(Date.now())
 const deletingSessionId = ref(null)
+const manualSuccess = ref({
+  message: '',
+  ts: 0,
+})
 const manual = ref({
   mode: 'duration',
   accountId: '',
@@ -258,8 +266,10 @@ async function submitManualSession() {
     alert('请选择账号')
     return
   }
+  manualSuccess.value = { message: '', ts: 0 }
   manual.value.saving = true
   try {
+    let successMessage = ''
     if (manual.value.mode === 'duration') {
       const hours = Number(manual.value.hours)
       const minutes = Number(manual.value.minutes)
@@ -295,6 +305,7 @@ async function submitManualSession() {
         biz_date: bizDate,
         duration_sec: durationSec,
       })
+      successMessage = `${bizDate} 已补录 ${formatDurationMmSs(durationSec)}`
     } else {
       const startRaw = String(manual.value.periodStart || '').trim()
       const endRaw = String(manual.value.periodEnd || '').trim()
@@ -322,8 +333,13 @@ async function submitManualSession() {
         started_at: start.toISOString(),
         ended_at: end.toISOString(),
       })
+      successMessage = `${formatDateTime(start)} ~ ${formatDateTime(end)} 已补录`
     }
     await refreshAll()
+    manualSuccess.value = {
+      message: successMessage,
+      ts: Date.now(),
+    }
   } catch (err) {
     alert(`补录失败：${err.message || '请稍后重试'}`)
   } finally {
