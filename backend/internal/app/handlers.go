@@ -27,6 +27,7 @@ type createAccountInput struct {
 }
 
 type updateAccountInput struct {
+	ID                      *string    `json:"id"`
 	PhoneNumber             *string    `json:"phone_number"`
 	Nickname                *string    `json:"nickname"`
 	Abbr                    *string    `json:"abbr"`
@@ -327,6 +328,18 @@ func (a *App) updateAccount(w http.ResponseWriter, r *http.Request, account Acco
 		writeError(w, http.StatusBadRequest, "invalid json")
 		return
 	}
+	if input.ID != nil && strings.TrimSpace(*input.ID) == "" {
+		writeError(w, http.StatusBadRequest, "id cannot be empty")
+		return
+	}
+	if input.Abbr != nil && strings.TrimSpace(*input.Abbr) == "" {
+		writeError(w, http.StatusBadRequest, "abbr cannot be empty")
+		return
+	}
+	if input.Nickname != nil && strings.TrimSpace(*input.Nickname) == "" {
+		writeError(w, http.StatusBadRequest, "nickname cannot be empty")
+		return
+	}
 	if input.Tacet != nil {
 		if err := validateTacet(*input.Tacet); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -349,19 +362,21 @@ func (a *App) updateAccount(w http.ResponseWriter, r *http.Request, account Acco
 	ctx, cancel := a.withTimeout(r)
 	defer cancel()
 	query := `UPDATE accounts SET
-		phone_number = COALESCE($2, phone_number),
-		nickname = COALESCE($3, nickname),
-		abbr = COALESCE($4, abbr),
-		remark = COALESCE($5, remark),
-		tacet = COALESCE($6, tacet),
-		is_active = COALESCE($7, is_active),
-		full_waveplate_at = $8,
-		full_waveplate_crystal = $9,
+		id = COALESCE($2, id),
+		phone_number = COALESCE($3, phone_number),
+		nickname = COALESCE($4, nickname),
+		abbr = COALESCE($5, abbr),
+		remark = COALESCE($6, remark),
+		tacet = COALESCE($7, tacet),
+		is_active = COALESCE($8, is_active),
+		full_waveplate_at = $9,
+		full_waveplate_crystal = $10,
 		updated_at = now()
 	WHERE account_id = $1
 	RETURNING account_id, id, abbr, nickname, phone_number, remark, tacet, full_waveplate_at, full_waveplate_crystal, is_active, created_at, updated_at`
 	row := a.db.QueryRowContext(ctx, query,
 		account.AccountID,
+		nullableString(input.ID),
 		nullableString(input.PhoneNumber),
 		nullableString(input.Nickname),
 		nullableString(input.Abbr),

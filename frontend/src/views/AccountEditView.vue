@@ -1,8 +1,12 @@
 <template>
   <section class="panel" style="margin-bottom: 12px">
     <h2>编辑账号</h2>
-    <p class="meta">账号 ID：{{ id }}</p>
+    <p class="meta">当前路由 ID：{{ id }}</p>
     <div class="form-grid">
+      <label>
+        账号 ID
+        <input v-model="form.id" />
+      </label>
       <label>
         账号缩写
         <input v-model="form.abbr" />
@@ -101,6 +105,7 @@ const manualCurrentCrystal = ref(null)
 const manualFullWaveplateAt = ref('')
 
 const form = reactive({
+  id: '',
   phone_number: '',
   nickname: '',
   abbr: '',
@@ -122,6 +127,7 @@ function toDateTimeLocal(value) {
 
 async function load() {
   const account = await api.getAccountById(id)
+  form.id = account.id || ''
   form.abbr = account.abbr || ''
   form.nickname = account.nickname || ''
   form.phone_number = account.phone_number || ''
@@ -135,6 +141,7 @@ async function load() {
 async function save() {
   saved.value = false
   await api.updateAccount(id, {
+    id: form.id,
     abbr: form.abbr,
     nickname: form.nickname,
     phone_number: form.phone_number,
