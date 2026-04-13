@@ -181,11 +181,12 @@ VITE_API_BASE=http://127.0.0.1:8765 npm run dev
 
 ### 前端构建产物
 
-生产启动脚本 [scripts/start_frontend.sh](scripts/start_frontend.sh) 不运行 Vite dev server，而是：
+生产环境不再运行单独的前端 Node 服务，而是：
 
-- 读取 `frontend/dist`
-- 在本机 `3001` 端口启动静态文件服务
-- 将 `/api/*` 代理到 `http://127.0.0.1:8765`
+- 构建 `frontend/dist`
+- 通过 [scripts/publish_frontend.sh](scripts/publish_frontend.sh) 同步到 `/var/www/wuwa-mgt/dist`
+- 由 Nginx 直接托管静态资源
+- 由 Nginx 将 `/api/*` 代理到 `http://127.0.0.1:8765`
 
 因此更新前端后需要先构建：
 
@@ -203,9 +204,10 @@ npm run build
 该脚本会：
 
 - 重启 `wuwa-mgt-backend.service`
-- 重启 `wuwa-mgt-frontend.service`
+- 同步最新前端构建产物到 `/var/www/wuwa-mgt/dist`
+- 重载 `nginx`
 - 检查后端 `http://127.0.0.1:8765/healthz`
-- 检查前端 `http://127.0.0.1:3001/`
+- 检查前端 `https://mgt.icehe.life/`
 
 ## 主要接口
 
