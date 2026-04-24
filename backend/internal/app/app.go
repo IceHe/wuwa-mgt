@@ -766,15 +766,11 @@ func (a *App) applyEnergySet(account *Account, payload energySetInput, now time.
 		return nil
 	}
 
-	targetWP := 0
-	if payload.CurrentWaveplate != nil {
-		targetWP = *payload.CurrentWaveplate
-	}
 	targetCrystal := currentCrystal
 	if payload.CurrentWaveplateCrystal != nil {
 		targetCrystal = *payload.CurrentWaveplateCrystal
 	}
-	if payload.CurrentWaveplateCrystal != nil && targetWP == currentWP {
+	if payload.CurrentWaveplate == nil || *payload.CurrentWaveplate == currentWP {
 		fullCrystal, err := fullCrystalFromCurrentCrystal(targetCrystal, account.FullWaveplateAt, now)
 		if err != nil {
 			return err
@@ -782,9 +778,20 @@ func (a *App) applyEnergySet(account *Account, payload energySetInput, now time.
 		account.FullWaveplateCrystal = fullCrystal
 		return nil
 	}
-	fullAt, fullCrystal := fullTimeFromCurrentResources(targetWP, targetCrystal, now)
-	account.FullWaveplateAt = fullAt
-	account.FullWaveplateCrystal = fullCrystal
+
+	targetWP := *payload.CurrentWaveplate
+	nextWP, nextCrystal := normalizeResources(targetWP, targetCrystal)
+	if nextWP < WaveplateCap {
+		nextRecoverSeconds := WaveplateRecoverSeconds
+		if currentWP < WaveplateCap {
+			nextRecoverSeconds = secondsToNextWaveplateRecoverFromFullTime(account.FullWaveplateAt, now)
+		}
+		account.FullWaveplateAt = fullTimeFromCurrentWaveplateAndNextRecover(nextWP, nextRecoverSeconds, now)
+		account.FullWaveplateCrystal = nextCrystal
+		return nil
+	}
+	account.FullWaveplateAt = now
+	account.FullWaveplateCrystal = nextCrystal
 	return nil
 }
 
