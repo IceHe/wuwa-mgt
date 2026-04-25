@@ -327,6 +327,22 @@ function timeToInputValue(dt) {
   return `${parts.hour}:${parts.minute}:${parts.second}`
 }
 
+function durationFieldsFromFullAt(value) {
+  const fullAtMs = new Date(value).getTime()
+  if (Number.isNaN(fullAtMs)) {
+    return { hours: '0', minutes: '0', seconds: '0' }
+  }
+  const deltaSeconds = Math.max(0, Math.ceil((fullAtMs - Date.now()) / 1000))
+  const hours = Math.floor(deltaSeconds / 3600)
+  const minutes = Math.floor((deltaSeconds % 3600) / 60)
+  const seconds = deltaSeconds % 60
+  return {
+    hours: String(hours),
+    minutes: String(minutes),
+    seconds: String(seconds),
+  }
+}
+
 function normalizeTimeValue(timeText) {
   const raw = String(timeText || '').trim()
   if (/^\d{2}:\d{2}$/.test(raw)) return `${raw}:00`
@@ -398,6 +414,7 @@ async function gain(id, amount) {
 
 function openEnergyEditor(account) {
   const eta = new Date(account.eta_waveplate_full)
+  const duration = durationFieldsFromFullAt(eta)
   energyEditor.value = {
     visible: true,
     targetId: String(account.id),
@@ -406,9 +423,9 @@ function openEnergyEditor(account) {
     currentCrystal: String(account.current_waveplate_crystal),
     dayOffset: '0',
     time: timeToInputValue(eta),
-    durationHours: '0',
-    durationMinutes: '0',
-    durationSeconds: '0',
+    durationHours: duration.hours,
+    durationMinutes: duration.minutes,
+    durationSeconds: duration.seconds,
     saving: false,
   }
 }
@@ -420,6 +437,12 @@ function closeEnergyEditor(force = false) {
 
 function setEnergyEditorMode(mode) {
   energyEditor.value.mode = mode
+  if (mode !== 'duration') return
+  const account = selectedEnergyAccount.value
+  const duration = durationFieldsFromFullAt(account?.eta_waveplate_full)
+  energyEditor.value.durationHours = duration.hours
+  energyEditor.value.durationMinutes = duration.minutes
+  energyEditor.value.durationSeconds = duration.seconds
 }
 
 function updateEnergyEditorField(field, value) {
