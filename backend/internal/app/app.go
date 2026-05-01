@@ -24,24 +24,26 @@ const (
 
 var (
 	allowedFlagKeys = map[string]string{
-		"daily_task":                   "daily",
-		"daily_nest":                   "daily",
-		"weekly_door":                  "weekly",
-		"weekly_boss":                  "weekly",
-		"weekly_synthesis":             "weekly",
-		"version_matrix_soldier":       "fv",
-		"version_small_coral_exchange": "fv",
-		"version_hologram_challenge":   "fv",
-		"version_echo_template_adjust": "fv",
-		"hv_trial_character":           "hv",
-		"monthly_tower_exchange":       "monthly",
-		"four_week_tower":              "four_week",
-		"four_week_ruins":              "four_week",
-		"range_plate":                  "range",
-		"range_music_game":             "range",
+		"daily_task":                     "daily",
+		"daily_nest":                     "daily",
+		"weekly_door":                    "weekly",
+		"weekly_boss":                    "weekly",
+		"weekly_synthesis":               "weekly",
+		"version_matrix_soldier":         "fv",
+		"version_small_coral_exchange":   "fv",
+		"version_hologram_challenge":     "fv",
+		"version_echo_template_adjust":   "fv",
+		"v33_gifts_of_grand_celebration": "fv",
+		"v33_bountiful_waves":            "fv",
+		"v33_star_bouncing":              "fv",
+		"v33_cubie_derby_championship":   "fv",
+		"hv_trial_character":             "hv",
+		"monthly_tower_exchange":         "monthly",
+		"four_week_tower":                "four_week",
+		"four_week_ruins":                "four_week",
 	}
 	allowedTacetValues = map[string]struct{}{
-		"": {}, "爱弥斯": {}, "西格莉卡": {}, "旧暗": {}, "旧雷": {}, "达妮娅": {},
+		"": {}, "爱弥斯": {}, "西格莉卡": {}, "旧暗": {}, "旧雷": {}, "达妮娅": {}, "绯雪": {}, "洛瑟拉": {},
 	}
 	doneStatuses = map[string]struct{}{"done": {}, "skipped": {}}
 )
@@ -647,11 +649,6 @@ func (a *App) resolvePeriodWindow(flagKey string, day time.Time) (string, string
 		}
 		start, end := fourWeekWindow(anchor, day)
 		return periodType, rangePeriodKey(start, end), start, end, nil
-	case "range":
-		if flagKey == "range_music_game" {
-			return periodType, rangePeriodKey(a.cfg.MusicGameRangeStart, a.cfg.MusicGameRangeEnd), a.cfg.MusicGameRangeStart, a.cfg.MusicGameRangeEnd, nil
-		}
-		return periodType, rangePeriodKey(a.cfg.PlateRangeStart, a.cfg.PlateRangeEnd), a.cfg.PlateRangeStart, a.cfg.PlateRangeEnd, nil
 	default:
 		return "", "", time.Time{}, time.Time{}, fmt.Errorf("unsupported period type for flag: %s", flagKey)
 	}

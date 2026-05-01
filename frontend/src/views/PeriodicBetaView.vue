@@ -13,61 +13,78 @@
         </label>
       </div>
     </div>
-    <div class="table-wrap">
-      <table class="periodic-beta-table">
-        <thead>
-          <tr>
-            <th class="beta-activity-col">活动 / 用户</th>
-            <th
-              v-for="acc in sortedAccounts"
-              :key="acc.id"
-              :class="['beta-account-col', { 'beta-account-highlight': isHighlighted(acc.id) }]"
-            >
-              <div class="beta-account-main beta-account-main-compact">
-                <span class="abbr-mark">{{ acc.abbr }}</span>
-              </div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="activity in activityRows" :key="activity.key">
-            <th :class="['beta-activity-col', activity.headerClass]">
-              <div class="beta-activity-main">{{ activity.label }}</div>
-              <div class="beta-activity-sub">{{ activity.periodLabel }} · {{ activityDateLabel(activity.key) }}</div>
-            </th>
-            <td
-              v-for="acc in sortedAccounts"
-              :key="`${activity.key}-${acc.id}`"
-              :class="['beta-status-cell', activity.cellClass, { 'beta-account-highlight': isHighlighted(acc.id) }]"
-            >
-              <label :class="['status-item', activity.flagClass, statusClass(statusValue(activity.key, acc.id)), { 'flag-all-done': activity.allDone }]">
-                <button
-                  type="button"
-                  class="status-toggle"
-                  :title="statusLabel(statusValue(activity.key, acc.id))"
-                  @click.stop="cycleCheckin(acc.id, activity.key)"
-                >
-                  {{ statusLabel(statusValue(activity.key, acc.id)) }}
-                </button>
-              </label>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+    <div
+      v-for="section in activitySections"
+      :key="section.key"
+      class="periodic-subsection"
+    >
+      <div class="periodic-section-heading">
+        <h3 style="margin: 0">{{ section.title }}</h3>
+        <span v-if="section.hint" class="meta">{{ section.hint }}</span>
+      </div>
+      <div class="table-wrap">
+        <table class="periodic-beta-table">
+          <thead>
+            <tr>
+              <th class="beta-activity-col">活动 / 用户</th>
+              <th
+                v-for="acc in sortedAccounts"
+                :key="acc.id"
+                :class="['beta-account-col', { 'beta-account-highlight': isHighlighted(acc.id) }]"
+              >
+                <div class="beta-account-main beta-account-main-compact">
+                  <span class="abbr-mark">{{ acc.abbr }}</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="activity in section.activities" :key="activity.key">
+              <th :class="['beta-activity-col', activity.headerClass]">
+                <div class="beta-activity-main">{{ activity.label }}</div>
+                <div class="beta-activity-sub">{{ activity.periodLabel }} · {{ activityDateLabel(activity) }}</div>
+              </th>
+              <td
+                v-for="acc in sortedAccounts"
+                :key="`${activity.key}-${acc.id}`"
+                :class="['beta-status-cell', activity.cellClass, { 'beta-account-highlight': isHighlighted(acc.id) }]"
+              >
+                <label :class="['status-item', activity.flagClass, statusClass(statusValue(activity.key, acc.id)), { 'flag-all-done': activity.allDone }]">
+                  <button
+                    type="button"
+                    class="status-toggle"
+                    :title="statusLabel(statusValue(activity.key, acc.id))"
+                    @click.stop="cycleCheckin(acc.id, activity.key)"
+                  >
+                    {{ statusLabel(statusValue(activity.key, acc.id)) }}
+                  </button>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
+import {
+  V33_TEMP_ACTIVITY_DEFS,
+  filterVisibleScheduledActivities,
+  formatScheduledActivityDateLabel,
+} from '../utils/periodicActivities'
 
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_beta_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_periodic_beta_sort_mode_v1'
 const SORT_MODE_OPTIONS = ['abbr', 'created_desc', 'recent_edit']
 const STATUS_FLOW = ['todo', 'done', 'skipped']
-const ACTIVITY_DEFS = [
+
+const FIXED_ACTIVITY_DEFS = [
   {
     key: 'version_matrix_soldier',
     label: '终焉矩阵',
@@ -118,6 +135,9 @@ const ACTIVITY_DEFS = [
     headerClass: 'beta-header-hv-trial',
     cellClass: 'beta-cell-hv-trial',
   },
+]
+
+const REGULAR_ACTIVITY_DEFS = [
   {
     key: 'monthly_tower_exchange',
     label: '深塔兑换所',
@@ -148,33 +168,38 @@ const ACTIVITY_DEFS = [
     headerClass: 'beta-header-fw-ruins',
     cellClass: 'beta-cell-fw-ruins',
   },
+]
+
+const SECTION_DEFS = [
   {
-    key: 'range_plate',
-    label: '餐盘',
-    periodLabel: '限时',
-    statusField: 'range_plate_status',
-    boolField: 'range_plate',
-    flagClass: 'flag-range-plate',
-    headerClass: 'beta-header-range-plate',
-    cellClass: 'beta-cell-range-plate',
+    key: 'fixed',
+    title: '固定版本活动',
+    activities: FIXED_ACTIVITY_DEFS,
   },
   {
-    key: 'range_music_game',
-    label: '音游',
-    periodLabel: '限时',
-    statusField: 'range_music_game_status',
-    boolField: 'range_music_game',
-    flagClass: 'flag-range-music',
-    headerClass: 'beta-header-range-music',
-    cellClass: 'beta-cell-range-music',
+    key: 'v33-temp',
+    title: '3.3 临时活动',
+    hint: '按活动开始日期自动显示',
+    activities: V33_TEMP_ACTIVITY_DEFS,
+    filterBySchedule: true,
+  },
+  {
+    key: 'regular',
+    title: '常驻周期活动',
+    activities: REGULAR_ACTIVITY_DEFS,
   },
 ]
+
+const ALL_ACTIVITY_DEFS = [...FIXED_ACTIVITY_DEFS, ...V33_TEMP_ACTIVITY_DEFS, ...REGULAR_ACTIVITY_DEFS]
 
 const accounts = ref([])
 const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))
 const highlightedAccountId = ref(null)
 const lastEditedMap = ref({})
-const statusMaps = ref(Object.fromEntries(ACTIVITY_DEFS.map((item) => [item.key, {}])))
+const statusMaps = ref(Object.fromEntries(ALL_ACTIVITY_DEFS.map((item) => [item.key, {}])))
+const visibilityNowMs = ref(Date.now())
+
+let visibilityTimerId = null
 
 const sortedAccounts = computed(() => {
   const rows = [...accounts.value]
@@ -194,11 +219,19 @@ const sortedAccounts = computed(() => {
   return rows
 })
 
-const activityRows = computed(() =>
-  ACTIVITY_DEFS.map((activity) => ({
-    ...activity,
-    allDone: isAllCompleted(statusMaps.value[activity.key] || {}),
-  })),
+const activitySections = computed(() =>
+  SECTION_DEFS.map((section) => {
+    const baseActivities = section.filterBySchedule
+      ? filterVisibleScheduledActivities(section.activities, visibilityNowMs.value)
+      : section.activities
+    return {
+      ...section,
+      activities: baseActivities.map((activity) => ({
+        ...activity,
+        allDone: isAllCompleted(statusMaps.value[activity.key] || {}),
+      })),
+    }
+  }).filter((section) => section.activities.length),
 )
 
 const periodWindows = computed(() => accounts.value[0]?.period_windows || {})
@@ -251,8 +284,11 @@ function formatShortDate(value) {
   return `${Number(match[2])}/${Number(match[3])}`
 }
 
-function activityDateLabel(flagKey) {
-  const window = periodWindows.value?.[flagKey]
+function activityDateLabel(activity) {
+  if (activity.startAt || activity.endAt) {
+    return formatScheduledActivityDateLabel(activity)
+  }
+  const window = periodWindows.value?.[activity.key]
   if (!window) return ''
   const start = formatShortDate(window.start)
   const end = formatShortDate(window.end)
@@ -268,9 +304,9 @@ function statusValue(flagKey, id) {
 
 async function refresh() {
   accounts.value = await api.listPeriodicAccounts()
-  const nextMaps = Object.fromEntries(ACTIVITY_DEFS.map((item) => [item.key, {}]))
+  const nextMaps = Object.fromEntries(ALL_ACTIVITY_DEFS.map((item) => [item.key, {}]))
   for (const acc of accounts.value) {
-    for (const activity of ACTIVITY_DEFS) {
+    for (const activity of ALL_ACTIVITY_DEFS) {
       nextMaps[activity.key][acc.id] = normalizeStatus(acc[activity.statusField], acc[activity.boolField])
     }
   }
@@ -341,9 +377,28 @@ function syncHighlightedAccountId() {
   highlightedAccountId.value = latestId || null
 }
 
+function startVisibilityClock() {
+  visibilityNowMs.value = Date.now()
+  visibilityTimerId = window.setInterval(() => {
+    visibilityNowMs.value = Date.now()
+  }, 60 * 1000)
+}
+
+function stopVisibilityClock() {
+  if (visibilityTimerId !== null) {
+    window.clearInterval(visibilityTimerId)
+    visibilityTimerId = null
+  }
+}
+
 onMounted(async () => {
   loadLastEditedMap()
+  startVisibilityClock()
   await refresh()
+})
+
+onUnmounted(() => {
+  stopVisibilityClock()
 })
 
 watch(sortMode, (value) => {

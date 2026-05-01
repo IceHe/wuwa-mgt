@@ -13,150 +13,205 @@
         </label>
       </div>
     </div>
-    <div class="table-wrap">
-      <table class="periodic-table">
-        <colgroup>
-          <col class="col-id" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-          <col class="col-flag" />
-        </colgroup>
-        <thead>
-          <tr class="group-row">
-            <th rowspan="2" class="group-id">ID / 尾号 / 昵称</th>
-            <th colspan="4" class="group-fv">每版本</th>
-            <th colspan="1" class="group-hv">每半版本</th>
-            <th colspan="1" class="group-monthly">每月</th>
-            <th colspan="2" class="group-fourweek">每四周</th>
-            <th colspan="2" class="group-range">限时</th>
-          </tr>
-          <tr>
-            <th class="col-version-matrix">终焉矩阵</th>
-            <th class="col-version-coral">小珊瑚兑换</th>
-            <th class="col-version-hologram">全息挑战</th>
-            <th class="col-version-template">声骸模板</th>
-            <th class="col-hv-trial">角色试用</th>
-            <th class="col-monthly-tower">深塔兑换所</th>
-            <th class="col-fw-tower">深塔</th>
-            <th class="col-fw-ruins">海墟</th>
-            <th class="col-range-plate">餐盘</th>
-            <th class="col-range-music">音游</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="acc in sortedAccounts"
-            :key="acc.id"
-            @click="toggleHighlight(acc.id)"
-            :class="{ edited: isHighlighted(acc.id) }"
-          >
-            <td>
-              <div class="account-main">
-                <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
-              </div>
-              <div class="account-sub meta">
-                <span class="phone-tail-text">{{ phoneTail(acc.phone_number) }}</span>
-                <span> / </span>
-                <span class="nickname-text">{{ acc.nickname }}</span>
-              </div>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-version-matrix', statusClass(versionMatrixSoldierInput[acc.id]), { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
-                <button type="button" class="status-toggle" :title="statusLabel(versionMatrixSoldierInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_matrix_soldier')">
-                  {{ statusLabel(versionMatrixSoldierInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-version-coral', statusClass(versionSmallCoralInput[acc.id]), { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
-                <button type="button" class="status-toggle" :title="statusLabel(versionSmallCoralInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_small_coral_exchange')">
-                  {{ statusLabel(versionSmallCoralInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-version-hologram', statusClass(versionHologramInput[acc.id]), { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
-                <button type="button" class="status-toggle" :title="statusLabel(versionHologramInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_hologram_challenge')">
-                  {{ statusLabel(versionHologramInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-version-template', statusClass(versionEchoTemplateInput[acc.id]), { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
-                <button type="button" class="status-toggle" :title="statusLabel(versionEchoTemplateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_echo_template_adjust')">
-                  {{ statusLabel(versionEchoTemplateInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-hv-trial', statusClass(hvTrialCharacterInput[acc.id]), { 'flag-all-done': allDoneFlags.hv_trial_character }]">
-                <button type="button" class="status-toggle" :title="statusLabel(hvTrialCharacterInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'hv_trial_character')">
-                  {{ statusLabel(hvTrialCharacterInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-monthly-tower', statusClass(monthlyTowerExchangeInput[acc.id]), { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
-                <button type="button" class="status-toggle" :title="statusLabel(monthlyTowerExchangeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'monthly_tower_exchange')">
-                  {{ statusLabel(monthlyTowerExchangeInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-fw-tower', statusClass(fourWeekTowerInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_tower }]">
-                <button type="button" class="status-toggle" :title="statusLabel(fourWeekTowerInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_tower')">
-                  {{ statusLabel(fourWeekTowerInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-fw-ruins', statusClass(fourWeekRuinsInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_ruins }]">
-                <button type="button" class="status-toggle" :title="statusLabel(fourWeekRuinsInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_ruins')">
-                  {{ statusLabel(fourWeekRuinsInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-range-plate', statusClass(rangePlateInput[acc.id]), { 'flag-all-done': allDoneFlags.range_plate }]">
-                <button type="button" class="status-toggle" :title="statusLabel(rangePlateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'range_plate')">
-                  {{ statusLabel(rangePlateInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-            <td>
-              <label :class="['status-item', 'flag-range-music', statusClass(rangeMusicGameInput[acc.id]), { 'flag-all-done': allDoneFlags.range_music_game }]">
-                <button type="button" class="status-toggle" :title="statusLabel(rangeMusicGameInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'range_music_game')">
-                  {{ statusLabel(rangeMusicGameInput[acc.id]) }}
-                </button>
-              </label>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+    <div class="periodic-subsection">
+      <div class="periodic-section-heading">
+        <h3 style="margin: 0">固定版本活动</h3>
+      </div>
+      <div class="table-wrap">
+        <table class="periodic-table">
+          <colgroup>
+            <col class="col-id" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+            <col class="col-flag" />
+          </colgroup>
+          <thead>
+            <tr class="group-row">
+              <th rowspan="2" class="group-id">ID / 尾号 / 昵称</th>
+              <th colspan="4" class="group-fv">每版本</th>
+              <th colspan="1" class="group-hv">每半版本</th>
+              <th colspan="1" class="group-monthly">每月</th>
+              <th colspan="2" class="group-fourweek">每四周</th>
+            </tr>
+            <tr>
+              <th class="col-version-matrix">终焉矩阵</th>
+              <th class="col-version-coral">小珊瑚兑换</th>
+              <th class="col-version-hologram">全息挑战</th>
+              <th class="col-version-template">声骸模板</th>
+              <th class="col-hv-trial">角色试用</th>
+              <th class="col-monthly-tower">深塔兑换所</th>
+              <th class="col-fw-tower">深塔</th>
+              <th class="col-fw-ruins">海墟</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="acc in sortedAccounts"
+              :key="acc.id"
+              @click="toggleHighlight(acc.id)"
+              :class="{ edited: isHighlighted(acc.id) }"
+            >
+              <td>
+                <div class="account-main">
+                  <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
+                </div>
+                <div class="account-sub meta">
+                  <span class="phone-tail-text">{{ phoneTail(acc.phone_number) }}</span>
+                  <span> / </span>
+                  <span class="nickname-text">{{ acc.nickname }}</span>
+                </div>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-version-matrix', statusClass(versionMatrixSoldierInput[acc.id]), { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(versionMatrixSoldierInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_matrix_soldier')">
+                    {{ statusLabel(versionMatrixSoldierInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-version-coral', statusClass(versionSmallCoralInput[acc.id]), { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(versionSmallCoralInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_small_coral_exchange')">
+                    {{ statusLabel(versionSmallCoralInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-version-hologram', statusClass(versionHologramInput[acc.id]), { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(versionHologramInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_hologram_challenge')">
+                    {{ statusLabel(versionHologramInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-version-template', statusClass(versionEchoTemplateInput[acc.id]), { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(versionEchoTemplateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_echo_template_adjust')">
+                    {{ statusLabel(versionEchoTemplateInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-hv-trial', statusClass(hvTrialCharacterInput[acc.id]), { 'flag-all-done': allDoneFlags.hv_trial_character }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(hvTrialCharacterInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'hv_trial_character')">
+                    {{ statusLabel(hvTrialCharacterInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-monthly-tower', statusClass(monthlyTowerExchangeInput[acc.id]), { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(monthlyTowerExchangeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'monthly_tower_exchange')">
+                    {{ statusLabel(monthlyTowerExchangeInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-fw-tower', statusClass(fourWeekTowerInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_tower }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(fourWeekTowerInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_tower')">
+                    {{ statusLabel(fourWeekTowerInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+              <td>
+                <label :class="['status-item', 'flag-fw-ruins', statusClass(fourWeekRuinsInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_ruins }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(fourWeekRuinsInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_ruins')">
+                    {{ statusLabel(fourWeekRuinsInput[acc.id]) }}
+                  </button>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div v-if="visibleTempActivities.length" class="periodic-subsection">
+      <div class="periodic-section-heading">
+        <h3 style="margin: 0">3.3 临时活动</h3>
+        <span class="meta">按活动开始日期自动显示</span>
+      </div>
+      <div class="table-wrap">
+        <table class="periodic-table">
+          <colgroup>
+            <col class="col-id" />
+            <col v-for="activity in visibleTempActivities" :key="activity.key" class="col-flag" />
+          </colgroup>
+          <thead>
+            <tr class="group-row">
+              <th rowspan="2" class="group-id">ID / 尾号 / 昵称</th>
+              <th :colspan="visibleTempActivities.length" class="group-v33-special">3.3 临时活动</th>
+            </tr>
+            <tr>
+              <th
+                v-for="activity in visibleTempActivities"
+                :key="activity.key"
+                :class="activity.tableHeaderClass"
+              >
+                {{ activity.label }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="acc in sortedAccounts"
+              :key="`temp-${acc.id}`"
+              @click="toggleHighlight(acc.id)"
+              :class="{ edited: isHighlighted(acc.id) }"
+            >
+              <td>
+                <div class="account-main">
+                  <strong><span class="abbr-mark">{{ acc.abbr }}</span>: <span class="id-text">{{ acc.id }}</span></strong>
+                </div>
+                <div class="account-sub meta">
+                  <span class="phone-tail-text">{{ phoneTail(acc.phone_number) }}</span>
+                  <span> / </span>
+                  <span class="nickname-text">{{ acc.nickname }}</span>
+                </div>
+              </td>
+              <td
+                v-for="activity in visibleTempActivities"
+                :key="`${activity.key}-${acc.id}`"
+                :class="activity.tableCellClass"
+              >
+                <label :class="['status-item', activity.flagClass, statusClass(tempStatusValue(activity.key, acc.id)), { 'flag-all-done': tempAllDoneFlags[activity.key] }]">
+                  <button
+                    type="button"
+                    class="status-toggle"
+                    :title="statusLabel(tempStatusValue(activity.key, acc.id))"
+                    @click.stop="cycleCheckin(acc.id, activity.key)"
+                  >
+                    {{ statusLabel(tempStatusValue(activity.key, acc.id)) }}
+                  </button>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
+import { V33_TEMP_ACTIVITY_DEFS, filterVisibleScheduledActivities } from '../utils/periodicActivities'
 
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_periodic_sort_mode_v1'
 const SORT_MODE_OPTIONS = ['abbr', 'created_desc', 'recent_edit']
 const STATUS_FLOW = ['todo', 'done', 'skipped']
+
 const accounts = ref([])
 const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))
 const highlightedAccountId = ref(null)
 const lastEditedMap = ref({})
+const visibilityNowMs = ref(Date.now())
 
 const versionMatrixSoldierInput = ref({})
 const versionSmallCoralInput = ref({})
@@ -166,8 +221,9 @@ const hvTrialCharacterInput = ref({})
 const monthlyTowerExchangeInput = ref({})
 const fourWeekTowerInput = ref({})
 const fourWeekRuinsInput = ref({})
-const rangePlateInput = ref({})
-const rangeMusicGameInput = ref({})
+const tempStatusMaps = ref(Object.fromEntries(V33_TEMP_ACTIVITY_DEFS.map((activity) => [activity.key, {}])))
+
+let visibilityTimerId = null
 
 const sortedAccounts = computed(() => {
   const rows = [...accounts.value]
@@ -187,6 +243,10 @@ const sortedAccounts = computed(() => {
   return rows
 })
 
+const visibleTempActivities = computed(() =>
+  filterVisibleScheduledActivities(V33_TEMP_ACTIVITY_DEFS, visibilityNowMs.value),
+)
+
 const allDoneFlags = computed(() => ({
   version_matrix_soldier: isAllCompleted(versionMatrixSoldierInput.value),
   version_small_coral_exchange: isAllCompleted(versionSmallCoralInput.value),
@@ -196,9 +256,13 @@ const allDoneFlags = computed(() => ({
   monthly_tower_exchange: isAllCompleted(monthlyTowerExchangeInput.value),
   four_week_tower: isAllCompleted(fourWeekTowerInput.value),
   four_week_ruins: isAllCompleted(fourWeekRuinsInput.value),
-  range_plate: isAllCompleted(rangePlateInput.value),
-  range_music_game: isAllCompleted(rangeMusicGameInput.value),
 }))
+
+const tempAllDoneFlags = computed(() =>
+  Object.fromEntries(
+    V33_TEMP_ACTIVITY_DEFS.map((activity) => [activity.key, isAllCompleted(tempStatusMaps.value[activity.key] || {})]),
+  ),
+)
 
 function normalizedId(id) {
   if (id === null || id === undefined) return ''
@@ -255,8 +319,11 @@ function statusMapByKey(flagKey) {
   if (flagKey === 'monthly_tower_exchange') return monthlyTowerExchangeInput.value
   if (flagKey === 'four_week_tower') return fourWeekTowerInput.value
   if (flagKey === 'four_week_ruins') return fourWeekRuinsInput.value
-  if (flagKey === 'range_plate') return rangePlateInput.value
-  return rangeMusicGameInput.value
+  return tempStatusMaps.value[flagKey] || {}
+}
+
+function tempStatusValue(flagKey, id) {
+  return tempStatusMaps.value[flagKey]?.[id] || 'todo'
 }
 
 function phoneTail(phoneNumber) {
@@ -267,6 +334,7 @@ function phoneTail(phoneNumber) {
 
 async function refresh() {
   accounts.value = await api.listPeriodicAccounts()
+  const nextTempMaps = Object.fromEntries(V33_TEMP_ACTIVITY_DEFS.map((activity) => [activity.key, {}]))
   for (const acc of accounts.value) {
     versionMatrixSoldierInput.value[acc.id] = normalizeStatus(acc.version_matrix_soldier_status, acc.version_matrix_soldier)
     versionSmallCoralInput.value[acc.id] = normalizeStatus(acc.version_small_coral_exchange_status, acc.version_small_coral_exchange)
@@ -276,9 +344,11 @@ async function refresh() {
     monthlyTowerExchangeInput.value[acc.id] = normalizeStatus(acc.monthly_tower_exchange_status, acc.monthly_tower_exchange)
     fourWeekTowerInput.value[acc.id] = normalizeStatus(acc.four_week_tower_status, acc.four_week_tower)
     fourWeekRuinsInput.value[acc.id] = normalizeStatus(acc.four_week_ruins_status, acc.four_week_ruins)
-    rangePlateInput.value[acc.id] = normalizeStatus(acc.range_plate_status, acc.range_plate)
-    rangeMusicGameInput.value[acc.id] = normalizeStatus(acc.range_music_game_status, acc.range_music_game)
+    for (const activity of V33_TEMP_ACTIVITY_DEFS) {
+      nextTempMaps[activity.key][acc.id] = normalizeStatus(acc[activity.statusField], acc[activity.boolField])
+    }
   }
+  tempStatusMaps.value = nextTempMaps
   syncHighlightedAccountId()
 }
 
@@ -346,9 +416,28 @@ function syncHighlightedAccountId() {
   highlightedAccountId.value = latestId || null
 }
 
+function startVisibilityClock() {
+  visibilityNowMs.value = Date.now()
+  visibilityTimerId = window.setInterval(() => {
+    visibilityNowMs.value = Date.now()
+  }, 60 * 1000)
+}
+
+function stopVisibilityClock() {
+  if (visibilityTimerId !== null) {
+    window.clearInterval(visibilityTimerId)
+    visibilityTimerId = null
+  }
+}
+
 onMounted(async () => {
   loadLastEditedMap()
+  startVisibilityClock()
   await refresh()
+})
+
+onUnmounted(() => {
+  stopVisibilityClock()
 })
 
 watch(sortMode, (value) => {

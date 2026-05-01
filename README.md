@@ -15,17 +15,17 @@
 - 账号体力、溢出结晶、满体力时间、下次恢复倒计时
 - 快捷体力操作：`+40 / +60 / -40 / -60`
 - 支持直接修改当前体力、当前结晶，或按目标满体力时间反推
-- 无音区目标记录：`爱弥斯 / 西格莉卡 / 旧暗 / 旧雷 / 达妮娅`
+- 无音区目标记录：`爱弥斯 / 西格莉卡 / 旧暗 / 旧雷 / 达妮娅 / 绯雪 / 洛瑟拉`
 - 每日每周检查项：`日常 / 聚落 / 门扉 / 周本 / 定向合成`
 - 清日常计时：支持开始/暂停，并在总览页直接展示累计时长
 
 ### `周期活动`
 
 - 每版本：`终焉矩阵 / 小珊瑚兑换 / 全息挑战 / 声骸模板`
+- 版本临时活动：`3.3 临时活动` 单独分区展示，并按活动开始日期显示
 - 每半版本：`角色试用`
 - 每月：`深塔兑换所`
 - 每四周：`深塔 / 海墟`
-- 限时活动：`餐盘 / 音游`
 - 检查项状态支持三态切换：`todo / done / skipped`
 
 ### `清日常计时明细`
@@ -83,7 +83,6 @@
 - `fv`：`fv-YYYY-MM-DD`
 - `hv`：`hv-YYYY-MM-DD`
 - `four_week`：`YYYY-MM-DD_YYYY-MM-DD`
-- `range`：`YYYY-MM-DD_YYYY-MM-DD`
 
 ## 环境变量
 
@@ -98,8 +97,8 @@ AUTH_REQUIRED_PERMISSION=manage
 AUTH_VALIDATE_TIMEOUT_SECONDS=3
 FOUR_WEEK_TOWER_ANCHOR=2026-03-30
 FOUR_WEEK_RUINS_ANCHOR=2026-03-16
-CURRENT_FV_START=2026-03-19
-CURRENT_HV_START=2026-03-19
+CURRENT_FV_START=2026-04-30
+CURRENT_HV_START=2026-04-30
 ```
 
 说明：
@@ -195,7 +194,24 @@ cd frontend
 npm run build
 ```
 
-## 服务重启
+## 生产部署
+
+日常发布直接执行：
+
+```bash
+cd /root/wuwa/mgt
+cd frontend && npm run build
+cd ..
+./scripts/restart_services.sh
+```
+
+说明：
+
+- `npm run build` 负责生成最新 `frontend/dist`
+- `./scripts/restart_services.sh` 会重新构建后端、发布前端静态文件、重启后端、重载 Nginx，并做健康检查
+- 如果本次只改了后端且前端 `dist` 已经是最新，可以直接运行 `./scripts/restart_services.sh`
+
+## 服务重启 / 发布脚本
 
 ```bash
 ./scripts/restart_services.sh

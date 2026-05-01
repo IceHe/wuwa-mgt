@@ -470,6 +470,18 @@ table {
   table-layout: fixed;
 }
 
+.periodic-subsection + .periodic-subsection {
+  margin-top: 18px;
+}
+
+.periodic-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .periodic-table col.col-id {
   width: 15%;
 }
@@ -537,8 +549,8 @@ table {
   background: linear-gradient(180deg, #eef8f1 0%, #e2f2e8 100%);
 }
 
-.periodic-table thead .group-row th.group-range {
-  background: linear-gradient(180deg, #fff0f0 0%, #ffe4e4 100%);
+.periodic-table thead .group-row th.group-v33-special {
+  background: linear-gradient(180deg, #fff7e8 0%, #ffefd5 100%);
 }
 
 .periodic-table th.col-version-matrix {
@@ -581,14 +593,24 @@ table {
   background: #eefaf1;
 }
 
-.periodic-table th.col-range-plate {
-  color: #b91c1c;
-  background: #fff1f1;
+.periodic-table th.col-v33-gifts {
+  color: #b45309;
+  background: #fff8e7;
 }
 
-.periodic-table th.col-range-music {
-  color: #a21caf;
-  background: #fff2ff;
+.periodic-table th.col-v33-waves {
+  color: #1d4ed8;
+  background: #eef5ff;
+}
+
+.periodic-table th.col-v33-star {
+  color: #be185d;
+  background: #fff1f6;
+}
+
+.periodic-table th.col-v33-cubie {
+  color: #047857;
+  background: #eefaf3;
 }
 
 .periodic-table tbody td:nth-child(2) {
@@ -623,12 +645,20 @@ table {
   background: #eefaf1;
 }
 
-.periodic-table tbody td:nth-child(10) {
-  background: #fff1f1;
+.periodic-table td.cell-v33-gifts {
+  background: #fff8e7;
 }
 
-.periodic-table tbody td:nth-child(11) {
-  background: #fff2ff;
+.periodic-table td.cell-v33-waves {
+  background: #eef5ff;
+}
+
+.periodic-table td.cell-v33-star {
+  background: #fff1f6;
+}
+
+.periodic-table td.cell-v33-cubie {
+  background: #eefaf3;
 }
 
 .periodic-beta-table {
@@ -736,14 +766,24 @@ table {
   background: #eefaf1;
 }
 
-.periodic-beta-table .beta-header-range-plate,
-.periodic-beta-table .beta-cell-range-plate {
-  background: #fff1f1;
+.periodic-beta-table .beta-header-v33-gifts,
+.periodic-beta-table .beta-cell-v33-gifts {
+  background: #fff8e7;
 }
 
-.periodic-beta-table .beta-header-range-music,
-.periodic-beta-table .beta-cell-range-music {
-  background: #fff2ff;
+.periodic-beta-table .beta-header-v33-waves,
+.periodic-beta-table .beta-cell-v33-waves {
+  background: #eef5ff;
+}
+
+.periodic-beta-table .beta-header-v33-star,
+.periodic-beta-table .beta-cell-v33-star {
+  background: #fff1f6;
+}
+
+.periodic-beta-table .beta-header-v33-cubie,
+.periodic-beta-table .beta-cell-v33-cubie {
+  background: #eefaf3;
 }
 
 .manage-table th:nth-child(1),
@@ -959,12 +999,20 @@ table {
   color: #15803d;
 }
 
-.status-item.flag-range-plate .status-label {
-  color: #b91c1c;
+.status-item.flag-v33-gifts .status-label {
+  color: #b45309;
 }
 
-.status-item.flag-range-music .status-label {
-  color: #a21caf;
+.status-item.flag-v33-waves .status-label {
+  color: #1d4ed8;
+}
+
+.status-item.flag-v33-star .status-label {
+  color: #be185d;
+}
+
+.status-item.flag-v33-cubie .status-label {
+  color: #047857;
 }
 
 .all-done-badge {
@@ -1011,6 +1059,14 @@ table {
 
 .tacet-select.tacet-daniya {
   color: #be185d;
+}
+
+.tacet-select.tacet-feixue {
+  color: #dc2626;
+}
+
+.tacet-select.tacet-luosela {
+  color: #0f766e;
 }
 
 .account-main {

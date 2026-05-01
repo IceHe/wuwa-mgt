@@ -201,6 +201,8 @@ const tacetOptions = [
   { value: '旧暗', label: '旧暗' },
   { value: '旧雷', label: '旧雷' },
   { value: '达妮娅', label: '达妮' },
+  { value: '绯雪', label: '绯雪' },
+  { value: '洛瑟拉', label: '洛瑟' },
 ]
 
 function toggleQuickMenu() {
@@ -224,6 +226,8 @@ function tacetClass(tacet) {
     '旧暗': 'tacet-old-dark',
     '旧雷': 'tacet-old-thunder',
     '达妮娅': 'tacet-daniya',
+    '绯雪': 'tacet-feixue',
+    '洛瑟拉': 'tacet-luosela',
   }
   return colorMap[tacet] || 'tacet-empty'
 }
