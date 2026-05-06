@@ -240,7 +240,19 @@ function energySummaryClass(account) {
   return 'waveplate-normal'
 }
 
+const WAVEPLATE_CAP = 240
+const WAVEPLATE_RECOVERY_SECONDS = 360
+const WAVEPLATE_CRYSTAL_CAP = 480
+const WAVEPLATE_CRYSTAL_RECOVERY_SECONDS = 720
+
 function formatCleanupDuration(totalSeconds) {
+  const sec = Math.max(0, Number(totalSeconds) || 0)
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0')
+  const ss = String(sec % 60).padStart(2, '0')
+  return `${mm}:${ss}`
+}
+
+function formatCountdownSeconds(totalSeconds) {
   const sec = Math.max(0, Number(totalSeconds) || 0)
   const mm = String(Math.floor(sec / 60)).padStart(2, '0')
   const ss = String(sec % 60).padStart(2, '0')
@@ -306,12 +318,25 @@ function formatFullTime(v) {
 function formatNextWaveplateCountdown(acc) {
   const fullAtMs = new Date(acc.eta_waveplate_full).getTime()
   if (Number.isNaN(fullAtMs)) return '-- +1'
-  const deltaSeconds = Math.max(0, Math.floor((fullAtMs - props.clockNowMs) / 1000))
-  if (deltaSeconds <= 0 || Number(acc.current_waveplate) >= 240) return '已满'
-  const nextPointSeconds = deltaSeconds % 360 || 360
-  const mm = String(Math.floor(nextPointSeconds / 60)).padStart(2, '0')
-  const ss = String(nextPointSeconds % 60).padStart(2, '0')
-  return `${mm}:${ss}`
+  const currentWaveplate = Number(acc.current_waveplate)
+  const currentCrystal = Number(acc.current_waveplate_crystal) || 0
+
+  if (currentWaveplate < WAVEPLATE_CAP) {
+    const deltaSeconds = Math.max(0, Math.floor((fullAtMs - props.clockNowMs) / 1000))
+    if (deltaSeconds <= 0) return '已满'
+    const nextPointSeconds = deltaSeconds % WAVEPLATE_RECOVERY_SECONDS || WAVEPLATE_RECOVERY_SECONDS
+    return formatCountdownSeconds(nextPointSeconds)
+  }
+
+  if (currentCrystal >= WAVEPLATE_CRYSTAL_CAP) return '已满'
+
+  const elapsedSinceFullSeconds = Math.max(0, Math.floor((props.clockNowMs - fullAtMs) / 1000))
+  const elapsedIntoCrystalTick = elapsedSinceFullSeconds % WAVEPLATE_CRYSTAL_RECOVERY_SECONDS
+  const nextCrystalSeconds =
+    elapsedIntoCrystalTick === 0
+      ? WAVEPLATE_CRYSTAL_RECOVERY_SECONDS
+      : WAVEPLATE_CRYSTAL_RECOVERY_SECONDS - elapsedIntoCrystalTick
+  return `结晶 ${formatCountdownSeconds(nextCrystalSeconds)}`
 }
 
 function normalizeStatus(status, boolFallback = false) {
