@@ -166,6 +166,18 @@
         </button>
       </label>
     </td>
+    <td>
+      <label :class="['status-item', 'flag-daily-small-run', statusClass(statuses.daily_small_run), { 'flag-all-done': allDoneFlags.daily_small_run }]">
+        <button
+          type="button"
+          class="status-toggle"
+          :title="statusLabel(statuses.daily_small_run)"
+          @click.stop="$emit('cycle-flag', account.id, 'daily_small_run')"
+        >
+          {{ statusChipLabel(statuses.daily_small_run) }}
+        </button>
+      </label>
+    </td>
   </tr>
 </template>
 

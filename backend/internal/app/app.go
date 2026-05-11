@@ -26,6 +26,7 @@ var (
 	allowedFlagKeys = map[string]string{
 		"daily_task":                   "daily",
 		"daily_nest":                   "daily",
+		"daily_small_run":              "daily",
 		"weekly_door":                  "weekly",
 		"weekly_boss":                  "weekly",
 		"weekly_synthesis":             "weekly",

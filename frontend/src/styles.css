@@ -356,6 +356,11 @@ table {
   min-width: 42px;
 }
 
+.overview-table th:nth-child(13),
+.overview-table td:nth-child(13) {
+  min-width: 42px;
+}
+
 .overview-table th,
 .overview-table td {
   padding: 3px 4px;
@@ -929,6 +934,10 @@ table {
 
 .status-item.flag-daily-nest .status-label {
   color: #0f766e;
+}
+
+.status-item.flag-daily-small-run .status-label {
+  color: #15803d;
 }
 
 .status-item.flag-weekly-door .status-label {

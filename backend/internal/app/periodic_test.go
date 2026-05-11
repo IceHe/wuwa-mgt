@@ -55,3 +55,26 @@ func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 		t.Fatalf("resolvePeriodWindow(hv_trial_character) end = %s, want 2026-05-20", got)
 	}
 }
+
+func TestResolvePeriodWindowSupportsDailySmallRun(t *testing.T) {
+	loc := mustLocation(t)
+	app := &App{}
+	day := mustDateInLocation("", "2026-05-01", loc)
+
+	periodType, periodKey, start, end, err := app.resolvePeriodWindow("daily_small_run", day)
+	if err != nil {
+		t.Fatalf("resolvePeriodWindow(daily_small_run) returned error: %v", err)
+	}
+	if periodType != "daily" {
+		t.Fatalf("resolvePeriodWindow(daily_small_run) periodType = %q, want daily", periodType)
+	}
+	if periodKey != "2026-05-01" {
+		t.Fatalf("resolvePeriodWindow(daily_small_run) periodKey = %q, want 2026-05-01", periodKey)
+	}
+	if got := start.Format("2006-01-02"); got != "2026-05-01" {
+		t.Fatalf("resolvePeriodWindow(daily_small_run) start = %s, want 2026-05-01", got)
+	}
+	if got := end.Format("2006-01-02"); got != "2026-05-01" {
+		t.Fatalf("resolvePeriodWindow(daily_small_run) end = %s, want 2026-05-01", got)
+	}
+}

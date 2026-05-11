@@ -103,11 +103,13 @@ type DashboardAccountOut struct {
 	WarnLevel               string     `json:"warn_level"`
 	DailyTask               bool       `json:"daily_task"`
 	DailyNest               bool       `json:"daily_nest"`
+	DailySmallRun           bool       `json:"daily_small_run"`
 	WeeklyDoor              bool       `json:"weekly_door"`
 	WeeklyBoss              bool       `json:"weekly_boss"`
 	WeeklySynthesis         bool       `json:"weekly_synthesis"`
 	DailyTaskStatus         string     `json:"daily_task_status"`
 	DailyNestStatus         string     `json:"daily_nest_status"`
+	DailySmallRunStatus     string     `json:"daily_small_run_status"`
 	WeeklyDoorStatus        string     `json:"weekly_door_status"`
 	WeeklyBossStatus        string     `json:"weekly_boss_status"`
 	WeeklySynthesisStatus   string     `json:"weekly_synthesis_status"`

@@ -1302,6 +1302,7 @@ func (a *App) handleDashboardAccounts(w http.ResponseWriter, r *http.Request) {
 		accountFlags := flagsMap[account.AccountID]
 		dailyTaskStatus := defaultStatus(accountFlags["daily_task"])
 		dailyNestStatus := defaultStatus(accountFlags["daily_nest"])
+		dailySmallRunStatus := defaultStatus(accountFlags["daily_small_run"])
 		weeklyDoorStatus := defaultStatus(accountFlags["weekly_door"])
 		weeklyBossStatus := defaultStatus(accountFlags["weekly_boss"])
 		weeklySynthesisStatus := defaultStatus(accountFlags["weekly_synthesis"])
@@ -1328,11 +1329,13 @@ func (a *App) handleDashboardAccounts(w http.ResponseWriter, r *http.Request) {
 			WarnLevel:               warnLevel(currentWP),
 			DailyTask:               isDoneStatus(dailyTaskStatus),
 			DailyNest:               isDoneStatus(dailyNestStatus),
+			DailySmallRun:           isDoneStatus(dailySmallRunStatus),
 			WeeklyDoor:              isDoneStatus(weeklyDoorStatus),
 			WeeklyBoss:              isDoneStatus(weeklyBossStatus),
 			WeeklySynthesis:         isDoneStatus(weeklySynthesisStatus),
 			DailyTaskStatus:         dailyTaskStatus,
 			DailyNestStatus:         dailyNestStatus,
+			DailySmallRunStatus:     dailySmallRunStatus,
 			WeeklyDoorStatus:        weeklyDoorStatus,
 			WeeklyBossStatus:        weeklyBossStatus,
 			WeeklySynthesisStatus:   weeklySynthesisStatus,
