@@ -549,10 +549,6 @@ table {
   background: linear-gradient(180deg, #eef8f1 0%, #e2f2e8 100%);
 }
 
-.periodic-table thead .group-row th.group-v33-special {
-  background: linear-gradient(180deg, #fff7e8 0%, #ffefd5 100%);
-}
-
 .periodic-table th.col-version-matrix {
   color: #4338ca;
   background: #f2f4ff;
@@ -591,26 +587,6 @@ table {
 .periodic-table th.col-fw-ruins {
   color: #15803d;
   background: #eefaf1;
-}
-
-.periodic-table th.col-v33-gifts {
-  color: #b45309;
-  background: #fff8e7;
-}
-
-.periodic-table th.col-v33-waves {
-  color: #1d4ed8;
-  background: #eef5ff;
-}
-
-.periodic-table th.col-v33-star {
-  color: #be185d;
-  background: #fff1f6;
-}
-
-.periodic-table th.col-v33-cubie {
-  color: #047857;
-  background: #eefaf3;
 }
 
 .periodic-table tbody td:nth-child(2) {

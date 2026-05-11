@@ -21,7 +21,6 @@
     >
       <div class="periodic-section-heading">
         <h3 style="margin: 0">{{ section.title }}</h3>
-        <span v-if="section.hint" class="meta">{{ section.hint }}</span>
       </div>
       <div class="table-wrap">
         <table class="periodic-beta-table">
@@ -70,14 +69,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
-import {
-  V33_TEMP_ACTIVITY_DEFS,
-  filterVisibleScheduledActivities,
-  formatScheduledActivityDateLabel,
-} from '../utils/periodicActivities'
 
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_beta_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_periodic_beta_sort_mode_v1'
@@ -177,29 +171,19 @@ const SECTION_DEFS = [
     activities: FIXED_ACTIVITY_DEFS,
   },
   {
-    key: 'v33-temp',
-    title: '3.3 临时活动',
-    hint: '按活动开始日期自动显示',
-    activities: V33_TEMP_ACTIVITY_DEFS,
-    filterBySchedule: true,
-  },
-  {
     key: 'regular',
     title: '常驻周期活动',
     activities: REGULAR_ACTIVITY_DEFS,
   },
 ]
 
-const ALL_ACTIVITY_DEFS = [...FIXED_ACTIVITY_DEFS, ...V33_TEMP_ACTIVITY_DEFS, ...REGULAR_ACTIVITY_DEFS]
+const ALL_ACTIVITY_DEFS = [...FIXED_ACTIVITY_DEFS, ...REGULAR_ACTIVITY_DEFS]
 
 const accounts = ref([])
 const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))
 const highlightedAccountId = ref(null)
 const lastEditedMap = ref({})
 const statusMaps = ref(Object.fromEntries(ALL_ACTIVITY_DEFS.map((item) => [item.key, {}])))
-const visibilityNowMs = ref(Date.now())
-
-let visibilityTimerId = null
 
 const sortedAccounts = computed(() => {
   const rows = [...accounts.value]
@@ -220,18 +204,13 @@ const sortedAccounts = computed(() => {
 })
 
 const activitySections = computed(() =>
-  SECTION_DEFS.map((section) => {
-    const baseActivities = section.filterBySchedule
-      ? filterVisibleScheduledActivities(section.activities, visibilityNowMs.value)
-      : section.activities
-    return {
-      ...section,
-      activities: baseActivities.map((activity) => ({
-        ...activity,
-        allDone: isAllCompleted(statusMaps.value[activity.key] || {}),
-      })),
-    }
-  }).filter((section) => section.activities.length),
+  SECTION_DEFS.map((section) => ({
+    ...section,
+    activities: section.activities.map((activity) => ({
+      ...activity,
+      allDone: isAllCompleted(statusMaps.value[activity.key] || {}),
+    })),
+  })),
 )
 
 const periodWindows = computed(() => accounts.value[0]?.period_windows || {})
@@ -285,9 +264,6 @@ function formatShortDate(value) {
 }
 
 function activityDateLabel(activity) {
-  if (activity.startAt || activity.endAt) {
-    return formatScheduledActivityDateLabel(activity)
-  }
   const window = periodWindows.value?.[activity.key]
   if (!window) return ''
   const start = formatShortDate(window.start)
@@ -377,28 +353,9 @@ function syncHighlightedAccountId() {
   highlightedAccountId.value = latestId || null
 }
 
-function startVisibilityClock() {
-  visibilityNowMs.value = Date.now()
-  visibilityTimerId = window.setInterval(() => {
-    visibilityNowMs.value = Date.now()
-  }, 60 * 1000)
-}
-
-function stopVisibilityClock() {
-  if (visibilityTimerId !== null) {
-    window.clearInterval(visibilityTimerId)
-    visibilityTimerId = null
-  }
-}
-
 onMounted(async () => {
   loadLastEditedMap()
-  startVisibilityClock()
   await refresh()
-})
-
-onUnmounted(() => {
-  stopVisibilityClock()
 })
 
 watch(sortMode, (value) => {

@@ -17,10 +17,6 @@ func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 		"version_small_coral_exchange",
 		"version_hologram_challenge",
 		"version_echo_template_adjust",
-		"v33_gifts_of_grand_celebration",
-		"v33_bountiful_waves",
-		"v33_star_bouncing",
-		"v33_cubie_derby_championship",
 	}
 
 	for _, flagKey := range fvFlags {

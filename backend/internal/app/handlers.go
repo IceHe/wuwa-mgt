@@ -1408,10 +1408,6 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		"version_small_coral_exchange",
 		"version_hologram_challenge",
 		"version_echo_template_adjust",
-		"v33_gifts_of_grand_celebration",
-		"v33_bountiful_waves",
-		"v33_star_bouncing",
-		"v33_cubie_derby_championship",
 		"hv_trial_character",
 		"monthly_tower_exchange",
 		"four_week_tower",
@@ -1466,47 +1462,35 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		vsce := defaultStatus(flags["version_small_coral_exchange"])
 		vhc := defaultStatus(flags["version_hologram_challenge"])
 		veta := defaultStatus(flags["version_echo_template_adjust"])
-		vgc := defaultStatus(flags["v33_gifts_of_grand_celebration"])
-		vbw := defaultStatus(flags["v33_bountiful_waves"])
-		vsb := defaultStatus(flags["v33_star_bouncing"])
-		vcdc := defaultStatus(flags["v33_cubie_derby_championship"])
 		hvtc := defaultStatus(flags["hv_trial_character"])
 		mte := defaultStatus(flags["monthly_tower_exchange"])
 		fwt := defaultStatus(flags["four_week_tower"])
 		fwr := defaultStatus(flags["four_week_ruins"])
 		out = append(out, PeriodicAccountOut{
-			AccountID:                        account.AccountID,
-			ID:                               account.ID,
-			Abbr:                             account.Abbr,
-			Nickname:                         account.Nickname,
-			PhoneNumber:                      accountPhonePtr(account.PhoneNumber),
-			CreatedAt:                        account.CreatedAt,
-			UpdatedAt:                        account.UpdatedAt,
-			PeriodWindows:                    periodWindows,
-			VersionMatrixSoldier:             isDoneStatus(vms),
-			VersionMatrixSoldierStatus:       vms,
-			VersionSmallCoralExchange:        isDoneStatus(vsce),
-			VersionSmallCoralExchangeStatus:  vsce,
-			VersionHologramChallenge:         isDoneStatus(vhc),
-			VersionHologramChallengeStatus:   vhc,
-			VersionEchoTemplateAdjust:        isDoneStatus(veta),
-			VersionEchoTemplateAdjustStatus:  veta,
-			V33GiftsOfGrandCelebration:       isDoneStatus(vgc),
-			V33GiftsOfGrandCelebrationStatus: vgc,
-			V33BountifulWaves:                isDoneStatus(vbw),
-			V33BountifulWavesStatus:          vbw,
-			V33StarBouncing:                  isDoneStatus(vsb),
-			V33StarBouncingStatus:            vsb,
-			V33CubieDerbyChampionship:        isDoneStatus(vcdc),
-			V33CubieDerbyChampionshipStatus:  vcdc,
-			HVTrialCharacter:                 isDoneStatus(hvtc),
-			HVTrialCharacterStatus:           hvtc,
-			MonthlyTowerExchange:             isDoneStatus(mte),
-			MonthlyTowerExchangeStatus:       mte,
-			FourWeekTower:                    isDoneStatus(fwt),
-			FourWeekTowerStatus:              fwt,
-			FourWeekRuins:                    isDoneStatus(fwr),
-			FourWeekRuinsStatus:              fwr,
+			AccountID:                       account.AccountID,
+			ID:                              account.ID,
+			Abbr:                            account.Abbr,
+			Nickname:                        account.Nickname,
+			PhoneNumber:                     accountPhonePtr(account.PhoneNumber),
+			CreatedAt:                       account.CreatedAt,
+			UpdatedAt:                       account.UpdatedAt,
+			PeriodWindows:                   periodWindows,
+			VersionMatrixSoldier:            isDoneStatus(vms),
+			VersionMatrixSoldierStatus:      vms,
+			VersionSmallCoralExchange:       isDoneStatus(vsce),
+			VersionSmallCoralExchangeStatus: vsce,
+			VersionHologramChallenge:        isDoneStatus(vhc),
+			VersionHologramChallengeStatus:  vhc,
+			VersionEchoTemplateAdjust:       isDoneStatus(veta),
+			VersionEchoTemplateAdjustStatus: veta,
+			HVTrialCharacter:                isDoneStatus(hvtc),
+			HVTrialCharacterStatus:          hvtc,
+			MonthlyTowerExchange:            isDoneStatus(mte),
+			MonthlyTowerExchangeStatus:      mte,
+			FourWeekTower:                   isDoneStatus(fwt),
+			FourWeekTowerStatus:             fwt,
+			FourWeekRuins:                   isDoneStatus(fwr),
+			FourWeekRuinsStatus:             fwr,
 		})
 	}
 	writeJSON(w, http.StatusOK, out)

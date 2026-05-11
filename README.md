@@ -22,7 +22,6 @@
 ### `周期活动`
 
 - 每版本：`终焉矩阵 / 小珊瑚兑换 / 全息挑战 / 声骸模板`
-- 版本临时活动：`3.3 临时活动` 单独分区展示，并按活动开始日期显示
 - 每半版本：`角色试用`
 - 每月：`深塔兑换所`
 - 每四周：`深塔 / 海墟`
@@ -224,6 +223,37 @@ cd ..
 - 重载 `nginx`
 - 检查后端 `http://127.0.0.1:8765/healthz`
 - 检查前端 `https://mgt.icehe.life/`
+
+## Hermes 体力提醒
+
+- 体力提醒不走 `openclaw`，改为复用本机 `hermes gateway` 的 `weixin` 通道
+- 安装或修复提醒任务：
+
+```bash
+python3 scripts/install_hermes_waveplate_alert.py
+```
+
+- 安装器会：
+  - 写入 `~/.hermes/scripts/wuwa_waveplate_alert.py` wrapper
+  - 注册或更新 Hermes cron 任务 `鸣潮体力 1小时预满提醒`
+  - 以 `every 5m` 频率检查“启用账号距离满体力是否进入 1 小时窗口”
+- 主逻辑脚本位于 `scripts/hermes_waveplate_alert.py`
+- 脚本默认读取：
+  - `~/.hermes/.env`：Hermes/微信通道配置
+  - 项目根目录 `.env`
+  - `backend/.env`
+- 可选环境变量：
+  - `WUWA_WAVEPLATE_ALERT_TARGET`：覆盖默认微信目标
+  - `WUWA_WAVEPLATE_ALERT_THRESHOLD_MINUTES`：提醒阈值，默认 `60`
+  - `WUWA_WAVEPLATE_ALERT_WINDOW_MINUTES`：轮询窗口，默认 `5`
+- 状态与日志文件：
+  - 状态：`~/.hermes/scripts/.wuwa_waveplate_alert_state.json`
+  - 日志：`~/.hermes/scripts/.wuwa_waveplate_alert.log`
+- 手动 dry run：
+
+```bash
+/usr/local/lib/hermes-agent/venv/bin/python scripts/hermes_waveplate_alert.py --dry-run --strict
+```
 
 ## 主要接口
 
