@@ -328,12 +328,12 @@ table {
 
 .overview-table th:nth-child(7),
 .overview-table td:nth-child(7) {
-  min-width: 76px;
+  min-width: 34px;
 }
 
 .overview-table th:nth-child(8),
 .overview-table td:nth-child(8) {
-  min-width: 42px;
+  min-width: 34px;
 }
 
 .overview-table th:nth-child(9),
@@ -367,10 +367,10 @@ table {
 }
 
 .overview-table .status-toggle {
-  min-width: 32px;
+  min-width: 28px;
   height: 18px;
   line-height: 16px;
-  padding: 0 3px;
+  padding: 0 2px;
   font-size: 10px;
 }
 

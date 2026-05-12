@@ -91,21 +91,6 @@
         </template>
       </div>
     </td>
-    <td :class="{ 'cleanup-active-cell': account.cleanup_running }">
-      <div class="cleanup-inline">
-        <div :class="['cleanup-duration', { 'is-running': account.cleanup_running }]">
-          {{ formatCleanupDuration(getCleanupDisplaySeconds(account)) }}
-        </div>
-        <button
-          type="button"
-          :class="['cleanup-timer-btn', account.cleanup_running ? 'is-running' : 'is-idle']"
-          :disabled="cleanupBusy"
-          @click.stop="$emit('toggle-cleanup', account)"
-        >
-          {{ account.cleanup_running ? '暂停' : '开始' }}
-        </button>
-      </div>
-    </td>
     <td>
       <label :class="['status-item', 'flag-daily-task', statusClass(statuses.daily_task), { 'flag-all-done': allDoneFlags.daily_task }]">
         <button
@@ -191,7 +176,6 @@ const props = defineProps({
   allDoneFlags: { type: Object, required: true },
   allDoneRow: { type: Boolean, default: false },
   highlighted: { type: Boolean, default: false },
-  cleanupBusy: { type: Boolean, default: false },
   clockNowMs: { type: Number, required: true },
 })
 
@@ -202,7 +186,6 @@ const emit = defineEmits([
   'open-remark-editor',
   'gain',
   'spend',
-  'toggle-cleanup',
   'cycle-flag',
 ])
 
@@ -251,36 +234,16 @@ function energySummaryClass(account) {
   if (Number(account.current_waveplate) + Number(account.current_waveplate_crystal) >= 120) return 'combined-alert-120'
   return 'waveplate-normal'
 }
-
 const WAVEPLATE_CAP = 240
 const WAVEPLATE_RECOVERY_SECONDS = 360
 const WAVEPLATE_CRYSTAL_CAP = 480
 const WAVEPLATE_CRYSTAL_RECOVERY_SECONDS = 720
-
-function formatCleanupDuration(totalSeconds) {
-  const sec = Math.max(0, Number(totalSeconds) || 0)
-  const mm = String(Math.floor(sec / 60)).padStart(2, '0')
-  const ss = String(sec % 60).padStart(2, '0')
-  return `${mm}:${ss}`
-}
 
 function formatCountdownSeconds(totalSeconds) {
   const sec = Math.max(0, Number(totalSeconds) || 0)
   const mm = String(Math.floor(sec / 60)).padStart(2, '0')
   const ss = String(sec % 60).padStart(2, '0')
   return `${mm}:${ss}`
-}
-
-function getCleanupDisplaySeconds(acc) {
-  const paused = Number(acc.cleanup_today_paused_sec || 0)
-  if (!acc.cleanup_running || !acc.cleanup_running_started_at) {
-    const total = Number(acc.cleanup_today_total_sec || paused)
-    return Math.max(paused, total)
-  }
-  const startedAtMs = new Date(acc.cleanup_running_started_at).getTime()
-  if (Number.isNaN(startedAtMs)) return Number(acc.cleanup_today_total_sec || paused)
-  const live = Math.max(0, Math.floor((props.clockNowMs - startedAtMs) / 1000))
-  return paused + live
 }
 
 function getTZParts(dt) {

@@ -14,10 +14,6 @@
           ></div>
           <span class="refresh-text">{{ countdownSeconds }}s</span>
         </div>
-        <div class="cleanup-total-indicator" title="当前所有账号清日常总时长">
-          <span class="meta">当前清日常总时长</span>
-          <strong class="cleanup-total-indicator-text">{{ formatDurationMmSs(currentCleanupTotalSeconds) }}</strong>
-        </div>
       </div>
       <div class="actions dashboard-toolbar-side">
         <label style="max-width: 220px">
@@ -42,13 +38,12 @@
             <th>体力</th>
             <th>满体力时间</th>
             <th>体力快捷操作</th>
-            <th>清日常时长</th>
             <th>日常</th>
             <th>聚落</th>
             <th>门扉</th>
             <th>周本</th>
-            <th>定向合成</th>
-            <th>小团快跑</th>
+            <th>合成</th>
+            <th>投票</th>
           </tr>
         </thead>
         <tbody>
@@ -68,7 +63,6 @@
             :all-done-flags="allDoneFlags"
             :all-done-row="isAllChecklistCompleted(acc.id)"
             :highlighted="isHighlighted(acc.id)"
-            :cleanup-busy="!!cleanupBusyMap[acc.id]"
             :clock-now-ms="clockNowMs"
             @toggle-highlight="toggleHighlight"
             @update-tacet="updateTacet"
@@ -76,7 +70,6 @@
             @open-remark-editor="openRemarkEditor"
             @gain="gain"
             @spend="spend"
-            @toggle-cleanup="toggleCleanupTimer"
             @cycle-flag="cycleDailyFlag"
           />
         </tbody>
@@ -131,7 +124,6 @@ const weeklyBossStatusInput = ref({})
 const weeklySynthesisStatusInput = ref({})
 const highlightedAccountId = ref(null)
 const countdownSeconds = ref(REFRESH_INTERVAL_SECONDS)
-const cleanupBusyMap = ref({})
 const lastEditedMap = ref({})
 const orderFrozen = ref(false)
 const frozenOrderIds = ref([])
@@ -201,9 +193,6 @@ const countdownProgress = computed(() => {
 })
 
 const countdownRemainProgress = computed(() => 1 - countdownProgress.value)
-const currentCleanupTotalSeconds = computed(() => (
-  accounts.value.reduce((sum, acc) => sum + getCleanupDisplaySeconds(acc), 0)
-))
 const allDoneFlags = computed(() => ({
   daily_task: isAllCompleted(dailyTaskStatusInput.value),
   daily_nest: isAllCompleted(dailyNestStatusInput.value),
@@ -236,7 +225,6 @@ async function refresh() {
       weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
       weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
       weeklySynthesisStatusInput.value[acc.id] = normalizeStatus(acc.weekly_synthesis_status, acc.weekly_synthesis)
-      cleanupBusyMap.value[acc.id] = false
     }
     syncHighlightedAccountId()
   } finally {
@@ -264,34 +252,6 @@ function applyEnergyPayload(id, payload) {
     waveplate_full_in_minutes: payload.waveplate_full_in_minutes,
     warn_level: payload.warn_level,
   })
-}
-
-function applyCleanupState(id, state) {
-  replaceAccountPatch(id, {
-    cleanup_today_total_sec: state.today_total_sec,
-    cleanup_today_paused_sec: state.today_paused_sec,
-    cleanup_running: state.running,
-    cleanup_running_started_at: state.running_started_at,
-  })
-}
-
-function getCleanupDisplaySeconds(acc) {
-  const paused = Number(acc.cleanup_today_paused_sec || 0)
-  if (!acc.cleanup_running || !acc.cleanup_running_started_at) {
-    const total = Number(acc.cleanup_today_total_sec || paused)
-    return Math.max(paused, total)
-  }
-  const startedAtMs = new Date(acc.cleanup_running_started_at).getTime()
-  if (Number.isNaN(startedAtMs)) return Number(acc.cleanup_today_total_sec || paused)
-  const live = Math.max(0, Math.floor((clockNowMs.value - startedAtMs) / 1000))
-  return paused + live
-}
-
-function formatDurationMmSs(totalSeconds) {
-  const sec = Math.max(0, Number(totalSeconds) || 0)
-  const mm = String(Math.floor(sec / 60)).padStart(2, '0')
-  const ss = String(sec % 60).padStart(2, '0')
-  return `${mm}:${ss}`
 }
 
 function getTZParts(dt) {
@@ -616,24 +576,6 @@ async function updateTacet(id, tacet) {
   } catch (err) {
     alert(`保存失败：${err.message || '请稍后重试'}`)
     await refresh()
-  }
-}
-
-async function toggleCleanupTimer(acc) {
-  const id = acc.id
-  if (cleanupBusyMap.value[id]) return
-  cleanupBusyMap.value[id] = true
-  try {
-    const payload = acc.cleanup_running
-      ? await api.pauseCleanupTimer(id)
-      : await api.startCleanupTimer(id)
-    applyCleanupState(id, payload)
-    markEdited(id)
-  } catch (err) {
-    alert(`计时操作失败：${err.message || '请稍后重试'}`)
-    await refresh()
-  } finally {
-    cleanupBusyMap.value[id] = false
   }
 }
 
