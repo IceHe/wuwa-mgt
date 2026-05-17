@@ -14,7 +14,7 @@
             v-model="tokenInput"
             type="password"
             placeholder="请输入 manage Token"
-            style="width: 210px"
+            style="width: 240px"
             @keyup.enter="login"
           />
           <button type="button" class="primary" @click="login">登录</button>

@@ -67,11 +67,11 @@
   <section class="panel">
     <h2>周期任务实例</h2>
     <div class="actions" style="margin-bottom: 10px">
-      <label style="max-width: 180px">
+      <label style="max-width: 220px">
         账号ID
         <input v-model.number="accountId" type="number" min="1" placeholder="可选" />
       </label>
-      <label style="max-width: 240px">
+      <label style="max-width: 280px">
         period_key
         <input v-model="periodKey" placeholder="例: 2026-03-28" />
       </label>

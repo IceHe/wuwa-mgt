@@ -3,7 +3,7 @@
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
       <h2 style="margin: 0">账号列表</h2>
       <div class="actions" style="align-items: center; gap: 12px">
-        <label style="max-width: 220px">
+        <label style="max-width: 260px">
           排序方式
           <select v-model="sortMode">
             <option value="abbr">账户缩写</option>
@@ -42,7 +42,7 @@
               <span v-else>-</span>
               <button
                 v-if="acc.phone_number"
-                style="margin-left: 6px; padding: 2px 6px"
+                style="margin-left: 6px; padding: 4px 8px"
                 @click="copyPhone(acc)"
               >
                 {{ copiedAccountId === acc.account_id ? '已复制' : '复制' }}

@@ -16,7 +16,7 @@
         </div>
       </div>
       <div class="actions dashboard-toolbar-side">
-        <label style="max-width: 220px">
+        <label style="max-width: 260px">
           排序方式
           <select v-model="sortMode">
             <option value="eta">最近满体</option>

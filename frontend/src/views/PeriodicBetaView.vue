@@ -3,7 +3,7 @@
     <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
       <h2 style="margin: 0">周期活动beta</h2>
       <div class="actions" style="align-items: center">
-        <label style="max-width: 220px">
+        <label style="max-width: 260px">
           排序方式
           <select v-model="sortMode">
             <option value="abbr">账户缩写</option>

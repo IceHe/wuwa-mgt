@@ -58,7 +58,7 @@
         min="0"
         max="240"
         placeholder="输入当前体力"
-        style="max-width: 160px"
+        style="max-width: 200px"
       />
       <input
         v-model.number="manualCurrentCrystal"
@@ -66,7 +66,7 @@
         min="0"
         max="480"
         placeholder="输入体力结晶(可选)"
-        style="max-width: 180px"
+        style="max-width: 220px"
       />
       <button class="primary" @click="setCurrentEnergy">校准当前体力</button>
       <span v-if="energySaved" class="meta">已校准</span>
@@ -77,7 +77,7 @@
         type="datetime-local"
         step="1"
         placeholder="输入满体力时间(精确到秒)"
-        style="max-width: 240px"
+        style="max-width: 280px"
       />
       <button class="primary" @click="setByFullWaveplateTime">按满体时间倒推</button>
     </div>
