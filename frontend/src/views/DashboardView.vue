@@ -354,8 +354,6 @@ function isAllChecklistCompleted(id) {
     isCompletedStatus(dailyTaskStatusInput.value[id]) &&
     isCompletedStatus(dailyNestStatusInput.value[id]) &&
     isCompletedStatus(dailySmallRunStatusInput.value[id]) &&
-    isCompletedStatus(weeklyDoorStatusInput.value[id]) &&
-    isCompletedStatus(weeklyBossStatusInput.value[id]) &&
     isCompletedStatus(weeklySynthesisStatusInput.value[id])
   )
 }
