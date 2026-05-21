@@ -63,7 +63,7 @@ func LoadConfig(root string) (Config, error) {
 		FourWeekTowerAnchor:        mustDateInLocation("FOUR_WEEK_TOWER_ANCHOR", "2026-03-30", loc),
 		FourWeekRuinsAnchor:        mustDateInLocation("FOUR_WEEK_RUINS_ANCHOR", "2026-03-16", loc),
 		CurrentFVStart:             mustDateInLocation("CURRENT_FV_START", "2026-04-30", loc),
-		CurrentHVStart:             mustDateInLocation("CURRENT_HV_START", "2026-04-30", loc),
+		CurrentHVStart:             mustDateInLocation("CURRENT_HV_START", "2026-05-21", loc),
 		Host:                       getenv("HOST", "0.0.0.0"),
 		Port:                       port,
 		Location:                   loc,

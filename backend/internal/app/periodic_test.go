@@ -7,10 +7,10 @@ func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 	app := &App{
 		cfg: Config{
 			CurrentFVStart: mustDateInLocation("", "2026-04-30", loc),
-			CurrentHVStart: mustDateInLocation("", "2026-04-30", loc),
+			CurrentHVStart: mustDateInLocation("", "2026-05-21", loc),
 		},
 	}
-	day := mustDateInLocation("", "2026-05-01", loc)
+	day := mustDateInLocation("", "2026-05-21", loc)
 
 	fvFlags := []string{
 		"version_matrix_soldier",
@@ -45,14 +45,14 @@ func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 	if periodType != "hv" {
 		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodType = %q, want hv", periodType)
 	}
-	if periodKey != "hv-2026-04-30" {
-		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodKey = %q, want hv-2026-04-30", periodKey)
+	if periodKey != "hv-2026-05-21" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodKey = %q, want hv-2026-05-21", periodKey)
 	}
-	if got := start.Format("2006-01-02"); got != "2026-04-30" {
-		t.Fatalf("resolvePeriodWindow(hv_trial_character) start = %s, want 2026-04-30", got)
+	if got := start.Format("2006-01-02"); got != "2026-05-21" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) start = %s, want 2026-05-21", got)
 	}
-	if got := end.Format("2006-01-02"); got != "2026-05-20" {
-		t.Fatalf("resolvePeriodWindow(hv_trial_character) end = %s, want 2026-05-20", got)
+	if got := end.Format("2006-01-02"); got != "2026-06-10" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) end = %s, want 2026-06-10", got)
 	}
 }
 
