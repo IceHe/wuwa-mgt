@@ -105,6 +105,7 @@ import DashboardRow from '../components/DashboardRow.vue'
 import EnergyEditorModal from '../components/EnergyEditorModal.vue'
 import RemarkEditorModal from '../components/RemarkEditorModal.vue'
 import { api } from '../api'
+import { deriveEnergySnapshot } from '../utils/energy'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const REFRESH_INTERVAL_SECONDS = 60
@@ -203,7 +204,7 @@ const allDoneFlags = computed(() => ({
 }))
 
 const selectedEnergyAccount = computed(() => (
-  accounts.value.find((item) => String(item.id) === String(energyEditor.value.targetId)) || null
+  liveAccountSnapshot(accounts.value.find((item) => String(item.id) === String(energyEditor.value.targetId)))
 ))
 const selectedRemarkAccount = computed(() => (
   accounts.value.find((item) => String(item.id) === String(remarkEditor.value.targetId)) || null
@@ -216,7 +217,8 @@ async function refresh() {
   refreshing = true
   try {
     const rows = await api.listDashboardAccounts()
-    accounts.value = rows
+    const snapshotMs = Date.now()
+    accounts.value = rows.map((row) => ({ ...row, _energy_snapshot_ms: snapshotMs }))
     for (const acc of rows) {
       tacetInput.value[acc.id] = acc.tacet || ''
       dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task)
@@ -251,7 +253,16 @@ function applyEnergyPayload(id, payload) {
     eta_waveplate_full: payload.eta_waveplate_full,
     waveplate_full_in_minutes: payload.waveplate_full_in_minutes,
     warn_level: payload.warn_level,
+    _energy_snapshot_ms: Date.now(),
   })
+}
+
+function liveAccountSnapshot(account) {
+  if (!account) return null
+  return {
+    ...account,
+    ...deriveEnergySnapshot(account, clockNowMs.value),
+  }
 }
 
 function getTZParts(dt) {
@@ -379,14 +390,15 @@ async function gain(id, amount) {
 }
 
 function openEnergyEditor(account) {
-  const eta = new Date(account.eta_waveplate_full)
+  const liveAccount = liveAccountSnapshot(account)
+  const eta = new Date(liveAccount.eta_waveplate_full)
   const duration = durationFieldsFromFullAt(eta)
   energyEditor.value = {
     visible: true,
-    targetId: String(account.id),
+    targetId: String(liveAccount.id),
     mode: 'current',
-    currentWaveplate: String(account.current_waveplate),
-    currentCrystal: String(account.current_waveplate_crystal),
+    currentWaveplate: String(liveAccount.current_waveplate),
+    currentCrystal: String(liveAccount.current_waveplate_crystal),
     dayOffset: '0',
     time: timeToInputValue(eta),
     durationHours: duration.hours,

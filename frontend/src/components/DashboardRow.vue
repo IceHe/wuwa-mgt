@@ -1,7 +1,7 @@
 <template>
   <tr
     :class="[
-      account.warn_level,
+      liveEnergy.warn_level,
       {
         edited: highlighted,
         'all-done-row': allDoneRow,
@@ -51,22 +51,22 @@
       <button
         type="button"
         class="energy-summary-card"
-        :class="energySummaryClass(account)"
-        :title="`当前体力 ${account.current_waveplate}，当前体力结晶 ${account.current_waveplate_crystal}`"
-        @click.stop="$emit('open-energy-editor', account)"
+        :class="energySummaryClass(liveEnergy)"
+        :title="`当前体力 ${liveEnergy.current_waveplate}，当前体力结晶 ${liveEnergy.current_waveplate_crystal}`"
+        @click.stop="$emit('open-energy-editor', liveAccount)"
       >
         <span class="energy-summary-inline">
-          <span class="energy-summary-main">{{ account.current_waveplate }}</span>
-          <span class="energy-summary-sub">+{{ account.current_waveplate_crystal }}</span>
+          <span class="energy-summary-main">{{ liveEnergy.current_waveplate }}</span>
+          <span class="energy-summary-sub">+{{ liveEnergy.current_waveplate_crystal }}</span>
         </span>
       </button>
     </td>
     <td class="eta-cell">
       <div class="eta-inline">
-        <button type="button" class="eta-trigger eta-chip" @click.stop="$emit('open-energy-editor', account)">
+        <button type="button" class="eta-trigger eta-chip" @click.stop="$emit('open-energy-editor', liveAccount)">
           {{ formatFullTime(account.eta_waveplate_full) }}
         </button>
-        <span class="eta-next meta eta-next-chip">{{ formatNextWaveplateCountdown(account) }}</span>
+        <span class="eta-next meta eta-next-chip">{{ formatNextWaveplateCountdown() }}</span>
       </div>
     </td>
     <td>
@@ -167,7 +167,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import {
+  WAVEPLATE_CAP,
+  WAVEPLATE_CRYSTAL_CAP,
+  WAVEPLATE_CRYSTAL_RECOVERY_SECONDS,
+  WAVEPLATE_RECOVERY_SECONDS,
+  deriveEnergySnapshot,
+} from '../utils/energy'
 
 const props = defineProps({
   account: { type: Object, required: true },
@@ -190,6 +197,11 @@ const emit = defineEmits([
 ])
 
 const quickMenuOpen = ref(false)
+const liveEnergy = computed(() => deriveEnergySnapshot(props.account, props.clockNowMs))
+const liveAccount = computed(() => ({
+  ...props.account,
+  ...liveEnergy.value,
+}))
 const tacetOptions = [
   { value: '爱弥斯', label: '爱弥' },
   { value: '西格莉卡', label: '西格' },
@@ -234,10 +246,6 @@ function energySummaryClass(account) {
   if (Number(account.current_waveplate) + Number(account.current_waveplate_crystal) >= 120) return 'combined-alert-120'
   return 'waveplate-normal'
 }
-const WAVEPLATE_CAP = 240
-const WAVEPLATE_RECOVERY_SECONDS = 360
-const WAVEPLATE_CRYSTAL_CAP = 480
-const WAVEPLATE_CRYSTAL_RECOVERY_SECONDS = 720
 
 function formatCountdownSeconds(totalSeconds) {
   const sec = Math.max(0, Number(totalSeconds) || 0)
@@ -290,11 +298,11 @@ function formatFullTime(v) {
   return `${Number(targetParts.month)}-${Number(targetParts.day)} ${hh}:${mm}`
 }
 
-function formatNextWaveplateCountdown(acc) {
-  const fullAtMs = new Date(acc.eta_waveplate_full).getTime()
+function formatNextWaveplateCountdown() {
+  const fullAtMs = new Date(props.account.eta_waveplate_full).getTime()
   if (Number.isNaN(fullAtMs)) return '-- +1'
-  const currentWaveplate = Number(acc.current_waveplate)
-  const currentCrystal = Number(acc.current_waveplate_crystal) || 0
+  const currentWaveplate = Number(liveEnergy.value.current_waveplate)
+  const currentCrystal = Number(liveEnergy.value.current_waveplate_crystal) || 0
 
   if (currentWaveplate < WAVEPLATE_CAP) {
     const deltaSeconds = Math.max(0, Math.floor((fullAtMs - props.clockNowMs) / 1000))
