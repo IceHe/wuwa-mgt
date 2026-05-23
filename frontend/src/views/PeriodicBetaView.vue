@@ -164,11 +164,29 @@ const REGULAR_ACTIVITY_DEFS = [
   },
 ]
 
+const TEMP_ACTIVITY_DEFS = [
+  {
+    key: 'temp_roguelike',
+    label: '肉鸽',
+    periodLabel: '临时活动',
+    statusField: 'temp_roguelike_status',
+    boolField: 'temp_roguelike',
+    flagClass: 'flag-temp-roguelike',
+    headerClass: 'beta-header-temp-roguelike',
+    cellClass: 'beta-cell-temp-roguelike',
+  },
+]
+
 const SECTION_DEFS = [
   {
     key: 'fixed',
     title: '固定版本活动',
     activities: FIXED_ACTIVITY_DEFS,
+  },
+  {
+    key: 'temp',
+    title: '临时活动',
+    activities: TEMP_ACTIVITY_DEFS,
   },
   {
     key: 'regular',
@@ -177,7 +195,7 @@ const SECTION_DEFS = [
   },
 ]
 
-const ALL_ACTIVITY_DEFS = [...FIXED_ACTIVITY_DEFS, ...REGULAR_ACTIVITY_DEFS]
+const ALL_ACTIVITY_DEFS = [...FIXED_ACTIVITY_DEFS, ...TEMP_ACTIVITY_DEFS, ...REGULAR_ACTIVITY_DEFS]
 
 const accounts = ref([])
 const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))

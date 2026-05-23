@@ -43,7 +43,6 @@
             <th>门扉</th>
             <th>周本</th>
             <th>合成</th>
-            <th>投票</th>
           </tr>
         </thead>
         <tbody>
@@ -55,7 +54,6 @@
             :statuses="{
               daily_task: dailyTaskStatusInput[acc.id],
               daily_nest: dailyNestStatusInput[acc.id],
-              daily_small_run: dailySmallRunStatusInput[acc.id],
               weekly_door: weeklyDoorStatusInput[acc.id],
               weekly_boss: weeklyBossStatusInput[acc.id],
               weekly_synthesis: weeklySynthesisStatusInput[acc.id],
@@ -119,7 +117,6 @@ const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'eta', SORT_MODE_OPT
 const tacetInput = ref({})
 const dailyTaskStatusInput = ref({})
 const dailyNestStatusInput = ref({})
-const dailySmallRunStatusInput = ref({})
 const weeklyDoorStatusInput = ref({})
 const weeklyBossStatusInput = ref({})
 const weeklySynthesisStatusInput = ref({})
@@ -197,7 +194,6 @@ const countdownRemainProgress = computed(() => 1 - countdownProgress.value)
 const allDoneFlags = computed(() => ({
   daily_task: isAllCompleted(dailyTaskStatusInput.value),
   daily_nest: isAllCompleted(dailyNestStatusInput.value),
-  daily_small_run: isAllCompleted(dailySmallRunStatusInput.value),
   weekly_door: isAllCompleted(weeklyDoorStatusInput.value),
   weekly_boss: isAllCompleted(weeklyBossStatusInput.value),
   weekly_synthesis: isAllCompleted(weeklySynthesisStatusInput.value),
@@ -223,7 +219,6 @@ async function refresh() {
       tacetInput.value[acc.id] = acc.tacet || ''
       dailyTaskStatusInput.value[acc.id] = normalizeStatus(acc.daily_task_status, acc.daily_task)
       dailyNestStatusInput.value[acc.id] = normalizeStatus(acc.daily_nest_status, acc.daily_nest)
-      dailySmallRunStatusInput.value[acc.id] = normalizeStatus(acc.daily_small_run_status, acc.daily_small_run)
       weeklyDoorStatusInput.value[acc.id] = normalizeStatus(acc.weekly_door_status, acc.weekly_door)
       weeklyBossStatusInput.value[acc.id] = normalizeStatus(acc.weekly_boss_status, acc.weekly_boss)
       weeklySynthesisStatusInput.value[acc.id] = normalizeStatus(acc.weekly_synthesis_status, acc.weekly_synthesis)
@@ -364,7 +359,6 @@ function isAllChecklistCompleted(id) {
   return (
     isCompletedStatus(dailyTaskStatusInput.value[id]) &&
     isCompletedStatus(dailyNestStatusInput.value[id]) &&
-    isCompletedStatus(dailySmallRunStatusInput.value[id]) &&
     isCompletedStatus(weeklySynthesisStatusInput.value[id])
   )
 }
@@ -530,7 +524,6 @@ async function submitRemarkEditor() {
 function statusMapByKey(flagKey) {
   if (flagKey === 'daily_task') return dailyTaskStatusInput.value
   if (flagKey === 'daily_nest') return dailyNestStatusInput.value
-  if (flagKey === 'daily_small_run') return dailySmallRunStatusInput.value
   if (flagKey === 'weekly_door') return weeklyDoorStatusInput.value
   if (flagKey === 'weekly_boss') return weeklyBossStatusInput.value
   return weeklySynthesisStatusInput.value
@@ -561,9 +554,6 @@ function applyStatusToAccount(id, flagKey, status) {
   } else if (flagKey === 'daily_nest') {
     patch.daily_nest_status = normalized
     patch.daily_nest = boolValue
-  } else if (flagKey === 'daily_small_run') {
-    patch.daily_small_run_status = normalized
-    patch.daily_small_run = boolValue
   } else if (flagKey === 'weekly_door') {
     patch.weekly_door_status = normalized
     patch.weekly_door = boolValue

@@ -1411,6 +1411,7 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		"version_small_coral_exchange",
 		"version_hologram_challenge",
 		"version_echo_template_adjust",
+		"temp_roguelike",
 		"hv_trial_character",
 		"monthly_tower_exchange",
 		"four_week_tower",
@@ -1465,6 +1466,7 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		vsce := defaultStatus(flags["version_small_coral_exchange"])
 		vhc := defaultStatus(flags["version_hologram_challenge"])
 		veta := defaultStatus(flags["version_echo_template_adjust"])
+		tr := defaultStatus(flags["temp_roguelike"])
 		hvtc := defaultStatus(flags["hv_trial_character"])
 		mte := defaultStatus(flags["monthly_tower_exchange"])
 		fwt := defaultStatus(flags["four_week_tower"])
@@ -1486,6 +1488,8 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 			VersionHologramChallengeStatus:  vhc,
 			VersionEchoTemplateAdjust:       isDoneStatus(veta),
 			VersionEchoTemplateAdjustStatus: veta,
+			TempRoguelike:                  isDoneStatus(tr),
+			TempRoguelikeStatus:            tr,
 			HVTrialCharacter:                isDoneStatus(hvtc),
 			HVTrialCharacterStatus:          hvtc,
 			MonthlyTowerExchange:            isDoneStatus(mte),

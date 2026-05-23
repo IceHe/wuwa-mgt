@@ -552,6 +552,10 @@ table {
   background: linear-gradient(180deg, #eef3ff 0%, #e3ecff 100%);
 }
 
+.periodic-table thead .group-row th.group-temp {
+  background: linear-gradient(180deg, #fff8df 0%, #ffefb6 100%);
+}
+
 .periodic-table thead .group-row th.group-hv {
   background: linear-gradient(180deg, #f3efff 0%, #ece5ff 100%);
 }
@@ -582,6 +586,11 @@ table {
 .periodic-table th.col-version-template {
   color: #047857;
   background: #effaf5;
+}
+
+.periodic-table th.col-temp-roguelike {
+  color: #a16207;
+  background: #fff8e7;
 }
 
 .periodic-table th.col-hv-trial {
@@ -621,19 +630,27 @@ table {
 }
 
 .periodic-table tbody td:nth-child(6) {
-  background: #f5f1ff;
+  background: #fff8e7;
 }
 
 .periodic-table tbody td:nth-child(7) {
-  background: #fff4ec;
+  background: #f5f1ff;
 }
 
 .periodic-table tbody td:nth-child(8) {
-  background: #eef4ff;
+  background: #fff4ec;
 }
 
 .periodic-table tbody td:nth-child(9) {
+  background: #eef4ff;
+}
+
+.periodic-table tbody td:nth-child(10) {
   background: #eefaf1;
+}
+
+.periodic-table td.cell-temp-roguelike {
+  background: #fff8e7;
 }
 
 .periodic-table td.cell-v33-gifts {
@@ -735,6 +752,11 @@ table {
 .periodic-beta-table .beta-header-version-template,
 .periodic-beta-table .beta-cell-version-template {
   background: #effaf5;
+}
+
+.periodic-beta-table .beta-header-temp-roguelike,
+.periodic-beta-table .beta-cell-temp-roguelike {
+  background: #fff8e7;
 }
 
 .periodic-beta-table .beta-header-hv-trial,
@@ -976,6 +998,10 @@ table {
 
 .status-item.flag-version-template .status-label {
   color: #047857;
+}
+
+.status-item.flag-temp-roguelike .status-label {
+  color: #a16207;
 }
 
 .status-item.flag-hv-trial .status-label {
