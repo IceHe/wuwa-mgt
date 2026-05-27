@@ -226,7 +226,7 @@ cd ..
 
 ## Hermes 体力提醒
 
-- 体力提醒不走 `openclaw`，改为复用本机 `hermes gateway` 的 `weixin` 通道
+- 体力提醒不走 `openclaw`，改为复用本机 `hermes gateway` 的 `telegram` 通道
 - 安装或修复提醒任务：
 
 ```bash
@@ -239,11 +239,12 @@ python3 scripts/install_hermes_waveplate_alert.py
   - 以 `every 5m` 频率检查“启用账号距离满体力是否进入 1 小时窗口”
 - 主逻辑脚本位于 `scripts/hermes_waveplate_alert.py`
 - 脚本默认读取：
-  - `~/.hermes/.env`：Hermes/微信通道配置
+  - `~/.hermes/.env`：Hermes/Telegram 通道配置
   - 项目根目录 `.env`
   - `backend/.env`
 - 可选环境变量：
-  - `WUWA_WAVEPLATE_ALERT_TARGET`：覆盖默认微信目标
+  - `WUWA_WAVEPLATE_ALERT_CHANNELS`：覆盖发送通道，默认 `telegram`
+  - `WUWA_WAVEPLATE_ALERT_TELEGRAM_TARGET`：覆盖 Telegram 目标
   - `WUWA_WAVEPLATE_ALERT_THRESHOLD_MINUTES`：提醒阈值，默认 `60`
   - `WUWA_WAVEPLATE_ALERT_WINDOW_MINUTES`：轮询窗口，默认 `5`
 - 状态与日志文件：
@@ -253,6 +254,12 @@ python3 scripts/install_hermes_waveplate_alert.py
 
 ```bash
 /usr/local/lib/hermes-agent/venv/bin/python scripts/hermes_waveplate_alert.py --dry-run --strict
+```
+
+- 手动推送当前账号状态：
+
+```bash
+/usr/local/lib/hermes-agent/venv/bin/python scripts/hermes_waveplate_alert.py --send-current --strict
 ```
 
 ## 主要接口
