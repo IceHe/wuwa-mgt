@@ -384,11 +384,20 @@ table {
 }
 
 .periodic-row-open-btn {
+  border-color: #c4b5fd;
+  background: #f5f1ff;
+  color: #5b21b6;
   min-width: 44px;
   height: 24px;
   padding: 0 6px;
   font-size: 12px;
+  font-weight: 700;
   line-height: 22px;
+}
+
+.periodic-row-open-btn:hover {
+  border-color: #a78bfa;
+  background: #ede9fe;
 }
 
 .energy-summary-card {
