@@ -383,6 +383,14 @@ table {
   font-size: 11px;
 }
 
+.periodic-row-open-btn {
+  min-width: 44px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 22px;
+}
+
 .energy-summary-card {
   width: 100%;
   display: inline-flex;
@@ -1370,6 +1378,33 @@ td {
 
 .remark-editor-modal {
   width: min(560px, calc(100vw - 24px));
+}
+
+.periodic-account-modal {
+  width: min(1180px, calc(100vw - 24px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.periodic-account-table {
+  min-width: 980px;
+}
+
+.periodic-account-modal-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 92px;
+  border: 1px solid #dce3f1;
+  background: #f8fbff;
+  color: #475569;
+}
+
+.periodic-account-modal-state.error {
+  color: #9f1239;
+  background: #fff1f2;
+  border-color: #fecdd3;
 }
 
 .energy-editor-header {

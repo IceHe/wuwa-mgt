@@ -151,6 +151,15 @@
         </button>
       </label>
     </td>
+    <td>
+      <button
+        type="button"
+        class="periodic-row-open-btn"
+        @click.stop="$emit('open-periodic', account)"
+      >
+        活动
+      </button>
+    </td>
   </tr>
 </template>
 
@@ -182,6 +191,7 @@ const emit = defineEmits([
   'gain',
   'spend',
   'cycle-flag',
+  'open-periodic',
 ])
 
 const quickMenuOpen = ref(false)

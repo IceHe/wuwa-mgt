@@ -43,6 +43,7 @@
             <th>周游</th>
             <th>周本</th>
             <th>合成</th>
+            <th>活动</th>
           </tr>
         </thead>
         <tbody>
@@ -69,6 +70,7 @@
             @gain="gain"
             @spend="spend"
             @cycle-flag="cycleDailyFlag"
+            @open-periodic="openPeriodicModal"
           />
         </tbody>
       </table>
@@ -94,6 +96,17 @@
       @save="submitRemarkEditor"
       @update:value="updateRemarkEditorValue"
     />
+
+    <PeriodicAccountModal
+      :visible="periodicModal.visible"
+      :account="periodicModal.account"
+      :loading="periodicModal.loading"
+      :error="periodicModal.error"
+      :saving-key="periodicModal.savingKey"
+      @close="closePeriodicModal"
+      @retry="loadPeriodicModalAccount"
+      @cycle="cyclePeriodicFlag"
+    />
   </section>
 </template>
 
@@ -101,6 +114,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import DashboardRow from '../components/DashboardRow.vue'
 import EnergyEditorModal from '../components/EnergyEditorModal.vue'
+import PeriodicAccountModal from '../components/PeriodicAccountModal.vue'
 import RemarkEditorModal from '../components/RemarkEditorModal.vue'
 import { api } from '../api'
 import { deriveEnergySnapshot } from '../utils/energy'
@@ -111,6 +125,48 @@ const LAST_EDIT_STORAGE_KEY = 'wuwa_dashboard_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_dashboard_sort_mode_v1'
 const SORT_MODE_OPTIONS = ['eta', 'recent_edit', 'oldest_edit', 'abbr']
 const STATUS_FLOW = ['todo', 'done', 'skipped']
+const PERIODIC_STATUS_FIELDS = {
+  version_matrix_soldier: {
+    statusField: 'version_matrix_soldier_status',
+    boolField: 'version_matrix_soldier',
+  },
+  version_small_coral_exchange: {
+    statusField: 'version_small_coral_exchange_status',
+    boolField: 'version_small_coral_exchange',
+  },
+  version_hologram_challenge: {
+    statusField: 'version_hologram_challenge_status',
+    boolField: 'version_hologram_challenge',
+  },
+  version_echo_template_adjust: {
+    statusField: 'version_echo_template_adjust_status',
+    boolField: 'version_echo_template_adjust',
+  },
+  version_mainline: {
+    statusField: 'version_mainline_status',
+    boolField: 'version_mainline',
+  },
+  temp_roguelike: {
+    statusField: 'temp_roguelike_status',
+    boolField: 'temp_roguelike',
+  },
+  hv_trial_character: {
+    statusField: 'hv_trial_character_status',
+    boolField: 'hv_trial_character',
+  },
+  monthly_tower_exchange: {
+    statusField: 'monthly_tower_exchange_status',
+    boolField: 'monthly_tower_exchange',
+  },
+  four_week_tower: {
+    statusField: 'four_week_tower_status',
+    boolField: 'four_week_tower',
+  },
+  four_week_ruins: {
+    statusField: 'four_week_ruins_status',
+    boolField: 'four_week_ruins',
+  },
+}
 
 const accounts = ref([])
 const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'eta', SORT_MODE_OPTIONS))
@@ -144,6 +200,14 @@ const remarkEditor = ref({
   targetId: '',
   value: '',
   saving: false,
+})
+const periodicModal = ref({
+  visible: false,
+  targetId: '',
+  account: null,
+  loading: false,
+  error: '',
+  savingKey: '',
 })
 
 let fetchTimer = null
@@ -518,6 +582,87 @@ async function submitRemarkEditor() {
     alert(`保存失败：${err.message || '请稍后重试'}`)
   } finally {
     state.saving = false
+  }
+}
+
+async function openPeriodicModal(account) {
+  periodicModal.value = {
+    visible: true,
+    targetId: String(account.id),
+    account: null,
+    loading: true,
+    error: '',
+    savingKey: '',
+  }
+  await loadPeriodicModalAccount()
+}
+
+function closePeriodicModal() {
+  if (periodicModal.value.savingKey) return
+  periodicModal.value.visible = false
+}
+
+async function loadPeriodicModalAccount() {
+  const targetId = periodicModal.value.targetId
+  if (!targetId) return
+  periodicModal.value.loading = true
+  periodicModal.value.error = ''
+  try {
+    const rows = await api.listPeriodicAccounts()
+    if (String(periodicModal.value.targetId) !== String(targetId)) return
+    const account = rows.find((item) => String(item.id) === String(targetId))
+    if (!account) {
+      periodicModal.value.account = null
+      periodicModal.value.error = '未找到该账号的周期活动'
+      return
+    }
+    periodicModal.value.account = account
+  } catch (err) {
+    if (String(periodicModal.value.targetId) === String(targetId)) {
+      periodicModal.value.error = `加载失败：${err.message || '请稍后重试'}`
+    }
+  } finally {
+    if (String(periodicModal.value.targetId) === String(targetId)) {
+      periodicModal.value.loading = false
+    }
+  }
+}
+
+function periodicStatus(flagKey) {
+  const account = periodicModal.value.account
+  const fields = PERIODIC_STATUS_FIELDS[flagKey]
+  if (!account || !fields) return 'todo'
+  return normalizeStatus(account[fields.statusField], account[fields.boolField])
+}
+
+function patchPeriodicStatus(flagKey, status) {
+  const account = periodicModal.value.account
+  const fields = PERIODIC_STATUS_FIELDS[flagKey]
+  if (!account || !fields) return
+  const normalized = normalizeStatus(status)
+  periodicModal.value.account = {
+    ...account,
+    [fields.statusField]: normalized,
+    [fields.boolField]: isCompletedStatus(normalized),
+  }
+}
+
+async function cyclePeriodicFlag(flagKey) {
+  if (!periodicModal.value.account || periodicModal.value.savingKey) return
+  const id = periodicModal.value.account.id
+  const current = periodicStatus(flagKey)
+  const next = nextStatus(current)
+  patchPeriodicStatus(flagKey, next)
+  periodicModal.value.savingKey = flagKey
+  try {
+    await api.setCheckin(id, flagKey, next)
+    markEdited(id)
+  } catch (err) {
+    alert(`保存失败：${err.message || '请稍后重试'}`)
+    patchPeriodicStatus(flagKey, current)
+    await loadPeriodicModalAccount()
+  } finally {
+    periodicModal.value.savingKey = ''
   }
 }
 
