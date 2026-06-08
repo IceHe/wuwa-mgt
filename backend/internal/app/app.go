@@ -23,6 +23,10 @@ const (
 )
 
 var (
+	// Wuwa 3.4 is a shortened version. Later normal versions still use 42 days.
+	specialFullVersionDaysByStart = map[string]int{
+		"2026-06-08": 32,
+	}
 	allowedFlagKeys = map[string]string{
 		"daily_task":                   "daily",
 		"daily_nest":                   "daily",
@@ -34,6 +38,7 @@ var (
 		"version_small_coral_exchange": "fv",
 		"version_hologram_challenge":   "fv",
 		"version_echo_template_adjust": "fv",
+		"version_mainline":             "fv",
 		"temp_roguelike":               "fv",
 		"hv_trial_character":           "hv",
 		"monthly_tower_exchange":       "monthly",
@@ -621,6 +626,21 @@ func rangePeriodKey(start, end time.Time) string {
 	return start.Format("2006-01-02") + "_" + end.Format("2006-01-02")
 }
 
+func fullVersionDaysFor(start time.Time) int {
+	if days, ok := specialFullVersionDaysByStart[start.Format("2006-01-02")]; ok {
+		return days
+	}
+	return defaultFullVersionDays
+}
+
+func halfVersionDaysFor(fullVersionStart time.Time) int {
+	fullVersionDays := fullVersionDaysFor(fullVersionStart)
+	if fullVersionDays == defaultFullVersionDays {
+		return defaultHalfVersionDays
+	}
+	return fullVersionDays / 2
+}
+
 func (a *App) resolvePeriodWindow(flagKey string, day time.Time) (string, string, time.Time, time.Time, error) {
 	periodType, ok := allowedFlagKeys[flagKey]
 	if !ok {
@@ -637,9 +657,11 @@ func (a *App) resolvePeriodWindow(flagKey string, day time.Time) (string, string
 		end := start.AddDate(0, 1, 0).AddDate(0, 0, -1)
 		return periodType, day.Format("2006-01"), start, end, nil
 	case "fv":
-		return periodType, "fv-" + a.cfg.CurrentFVStart.Format("2006-01-02"), a.cfg.CurrentFVStart, a.cfg.CurrentFVStart.AddDate(0, 0, defaultFullVersionDays-1), nil
+		versionDays := fullVersionDaysFor(a.cfg.CurrentFVStart)
+		return periodType, "fv-" + a.cfg.CurrentFVStart.Format("2006-01-02"), a.cfg.CurrentFVStart, a.cfg.CurrentFVStart.AddDate(0, 0, versionDays-1), nil
 	case "hv":
-		return periodType, "hv-" + a.cfg.CurrentHVStart.Format("2006-01-02"), a.cfg.CurrentHVStart, a.cfg.CurrentHVStart.AddDate(0, 0, defaultHalfVersionDays-1), nil
+		versionDays := halfVersionDaysFor(a.cfg.CurrentFVStart)
+		return periodType, "hv-" + a.cfg.CurrentHVStart.Format("2006-01-02"), a.cfg.CurrentHVStart, a.cfg.CurrentHVStart.AddDate(0, 0, versionDays-1), nil
 	case "four_week":
 		anchor := a.cfg.FourWeekRuinsAnchor
 		if flagKey == "four_week_tower" {

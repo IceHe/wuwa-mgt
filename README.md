@@ -21,7 +21,7 @@
 
 ### `周期活动`
 
-- 每版本：`终焉矩阵 / 小珊瑚兑换 / 全息挑战 / 声骸模板`
+- 每版本：`终焉矩阵 / 小珊瑚兑换 / 全息挑战 / 声骸模板 / 主线`
 - 每半版本：`角色试用`
 - 每月：`深塔兑换所`
 - 每四周：`深塔 / 海墟`
@@ -96,8 +96,8 @@ AUTH_REQUIRED_PERMISSION=manage
 AUTH_VALIDATE_TIMEOUT_SECONDS=3
 FOUR_WEEK_TOWER_ANCHOR=2026-03-30
 FOUR_WEEK_RUINS_ANCHOR=2026-03-16
-CURRENT_FV_START=2026-04-30
-CURRENT_HV_START=2026-05-21
+CURRENT_FV_START=2026-06-08
+CURRENT_HV_START=2026-06-08
 ```
 
 说明：
@@ -106,6 +106,7 @@ CURRENT_HV_START=2026-05-21
 - `FOUR_WEEK_*_ANCHOR`：四周周期锚点
 - `CURRENT_FV_START`：当前整版本起始日
 - `CURRENT_HV_START`：当前半版本起始日
+- `2026-06-08` 起始的 3.4 版本按 `32` 天处理；其他整版本默认仍为 `42` 天
 
 ## 鉴权
 

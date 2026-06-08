@@ -120,6 +120,16 @@ const FIXED_ACTIVITY_DEFS = [
     cellClass: 'beta-cell-version-template',
   },
   {
+    key: 'version_mainline',
+    label: '主线',
+    periodLabel: '每版本',
+    statusField: 'version_mainline_status',
+    boolField: 'version_mainline',
+    flagClass: 'flag-version-mainline',
+    headerClass: 'beta-header-version-mainline',
+    cellClass: 'beta-cell-version-mainline',
+  },
+  {
     key: 'hv_trial_character',
     label: '角色试用',
     periodLabel: '每半版本',

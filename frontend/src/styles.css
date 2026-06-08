@@ -588,6 +588,11 @@ table {
   background: #effaf5;
 }
 
+.periodic-table th.col-version-mainline {
+  color: #4d7c0f;
+  background: #f7fee7;
+}
+
 .periodic-table th.col-temp-roguelike {
   color: #a16207;
   background: #fff8e7;
@@ -630,22 +635,26 @@ table {
 }
 
 .periodic-table tbody td:nth-child(6) {
-  background: #fff8e7;
+  background: #f7fee7;
 }
 
 .periodic-table tbody td:nth-child(7) {
-  background: #f5f1ff;
+  background: #fff8e7;
 }
 
 .periodic-table tbody td:nth-child(8) {
-  background: #fff4ec;
+  background: #f5f1ff;
 }
 
 .periodic-table tbody td:nth-child(9) {
-  background: #eef4ff;
+  background: #fff4ec;
 }
 
 .periodic-table tbody td:nth-child(10) {
+  background: #eef4ff;
+}
+
+.periodic-table tbody td:nth-child(11) {
   background: #eefaf1;
 }
 
@@ -752,6 +761,11 @@ table {
 .periodic-beta-table .beta-header-version-template,
 .periodic-beta-table .beta-cell-version-template {
   background: #effaf5;
+}
+
+.periodic-beta-table .beta-header-version-mainline,
+.periodic-beta-table .beta-cell-version-mainline {
+  background: #f7fee7;
 }
 
 .periodic-beta-table .beta-header-temp-roguelike,
@@ -998,6 +1012,10 @@ table {
 
 .status-item.flag-version-template .status-label {
   color: #047857;
+}
+
+.status-item.flag-version-mainline .status-label {
+  color: #4d7c0f;
 }
 
 .status-item.flag-temp-roguelike .status-label {
