@@ -5,7 +5,6 @@
       <nav>
         <RouterLink to="/">每日每周</RouterLink>
         <RouterLink to="/periodic">周期活动</RouterLink>
-        <RouterLink to="/periodic-beta">周期活动beta</RouterLink>
         <RouterLink to="/manage/accounts">账号管理</RouterLink>
       </nav>
       <div class="auth-inline">
