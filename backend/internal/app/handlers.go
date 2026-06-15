@@ -1413,6 +1413,7 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		"version_echo_template_adjust",
 		"version_mainline",
 		"temp_racing",
+		"temp_roguelike",
 		"hv_trial_character",
 		"monthly_tower_exchange",
 		"four_week_tower",
@@ -1469,6 +1470,7 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		veta := defaultStatus(flags["version_echo_template_adjust"])
 		vm := defaultStatus(flags["version_mainline"])
 		tr := defaultStatus(flags["temp_racing"])
+		trog := defaultStatus(flags["temp_roguelike"])
 		hvtc := defaultStatus(flags["hv_trial_character"])
 		mte := defaultStatus(flags["monthly_tower_exchange"])
 		fwt := defaultStatus(flags["four_week_tower"])
@@ -1494,6 +1496,8 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 			VersionMainlineStatus:           vm,
 			TempRacing:                      isDoneStatus(tr),
 			TempRacingStatus:                tr,
+			TempRoguelike:                   isDoneStatus(trog),
+			TempRoguelikeStatus:             trog,
 			HVTrialCharacter:                isDoneStatus(hvtc),
 			HVTrialCharacterStatus:          hvtc,
 			MonthlyTowerExchange:            isDoneStatus(mte),

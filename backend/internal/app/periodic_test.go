@@ -19,6 +19,7 @@ func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 		"version_echo_template_adjust",
 		"version_mainline",
 		"temp_racing",
+		"temp_roguelike",
 	}
 
 	for _, flagKey := range fvFlags {

@@ -40,6 +40,7 @@ var (
 		"version_echo_template_adjust": "fv",
 		"version_mainline":             "fv",
 		"temp_racing":                  "fv",
+		"temp_roguelike":               "fv",
 		"hv_trial_character":           "hv",
 		"monthly_tower_exchange":       "monthly",
 		"four_week_tower":              "four_week",

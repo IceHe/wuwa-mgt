@@ -150,6 +150,10 @@ const PERIODIC_STATUS_FIELDS = {
     statusField: 'temp_racing_status',
     boolField: 'temp_racing',
   },
+  temp_roguelike: {
+    statusField: 'temp_roguelike_status',
+    boolField: 'temp_roguelike',
+  },
   hv_trial_character: {
     statusField: 'hv_trial_character_status',
     boolField: 'hv_trial_character',
