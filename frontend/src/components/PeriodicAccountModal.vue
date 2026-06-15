@@ -44,7 +44,7 @@
               <th class="col-version-hologram">全息挑战</th>
               <th class="col-version-template">声骸模板</th>
               <th class="col-version-mainline">主线</th>
-              <th class="col-temp-roguelike">肉鸽</th>
+              <th class="col-temp-racing">赛车</th>
               <th class="col-hv-trial">角色试用</th>
               <th class="col-monthly-tower">深塔兑换所</th>
               <th class="col-fw-tower">深塔</th>
@@ -127,11 +127,11 @@ const activities = [
     cellClass: 'cell-version-mainline',
   },
   {
-    key: 'temp_roguelike',
-    statusField: 'temp_roguelike_status',
-    boolField: 'temp_roguelike',
-    flagClass: 'flag-temp-roguelike',
-    cellClass: 'cell-temp-roguelike',
+    key: 'temp_racing',
+    statusField: 'temp_racing_status',
+    boolField: 'temp_racing',
+    flagClass: 'flag-temp-racing',
+    cellClass: 'cell-temp-racing',
   },
   {
     key: 'hv_trial_character',

@@ -610,7 +610,7 @@ table {
   background: #f7fee7;
 }
 
-.periodic-table th.col-temp-roguelike {
+.periodic-table th.col-temp-racing {
   color: #a16207;
   background: #fff8e7;
 }
@@ -675,7 +675,7 @@ table {
   background: #eefaf1;
 }
 
-.periodic-table td.cell-temp-roguelike {
+.periodic-table td.cell-temp-racing {
   background: #fff8e7;
 }
 
@@ -900,7 +900,7 @@ table {
   color: #4d7c0f;
 }
 
-.status-item.flag-temp-roguelike .status-label {
+.status-item.flag-temp-racing .status-label {
   color: #a16207;
 }
 

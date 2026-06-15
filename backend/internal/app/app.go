@@ -39,7 +39,7 @@ var (
 		"version_hologram_challenge":   "fv",
 		"version_echo_template_adjust": "fv",
 		"version_mainline":             "fv",
-		"temp_roguelike":               "fv",
+		"temp_racing":                  "fv",
 		"hv_trial_character":           "hv",
 		"monthly_tower_exchange":       "monthly",
 		"four_week_tower":              "four_week",

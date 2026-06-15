@@ -146,9 +146,9 @@ const PERIODIC_STATUS_FIELDS = {
     statusField: 'version_mainline_status',
     boolField: 'version_mainline',
   },
-  temp_roguelike: {
-    statusField: 'temp_roguelike_status',
-    boolField: 'temp_roguelike',
+  temp_racing: {
+    statusField: 'temp_racing_status',
+    boolField: 'temp_racing',
   },
   hv_trial_character: {
     statusField: 'hv_trial_character_status',
