@@ -162,6 +162,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
+import { compareAccountAbbr } from '../utils/accountSort'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_last_edit_map_v1'
@@ -200,7 +201,7 @@ const sortedAccounts = computed(() => {
     })
     return rows
   }
-  rows.sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+  rows.sort(compareAccountAbbr)
   return rows
 })
 

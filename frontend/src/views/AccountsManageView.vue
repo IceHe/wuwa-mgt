@@ -110,6 +110,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
+import { compareAccountAbbr } from '../utils/accountSort'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const router = useRouter()
@@ -140,7 +141,7 @@ const sortedAccounts = computed(() => {
     rows.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     return rows
   }
-  rows.sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+  rows.sort(compareAccountAbbr)
   return rows
 })
 

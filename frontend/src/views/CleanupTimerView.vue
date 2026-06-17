@@ -158,6 +158,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api'
+import { compareAccountAbbr } from '../utils/accountSort'
 
 const days = ref(7)
 const accounts = ref([])
@@ -254,7 +255,7 @@ async function refreshAll() {
 
 async function refreshAccounts() {
   const rows = await api.listAccounts()
-  accounts.value = rows.filter((item) => item.is_active).sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+  accounts.value = rows.filter((item) => item.is_active).sort(compareAccountAbbr)
   if (!manual.value.accountId && accounts.value.length) {
     manual.value.accountId = String(accounts.value[0].account_id)
   }

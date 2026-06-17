@@ -117,6 +117,7 @@ import EnergyEditorModal from '../components/EnergyEditorModal.vue'
 import PeriodicAccountModal from '../components/PeriodicAccountModal.vue'
 import RemarkEditorModal from '../components/RemarkEditorModal.vue'
 import { api } from '../api'
+import { compareAccountAbbr } from '../utils/accountSort'
 import { deriveEnergySnapshot } from '../utils/energy'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
@@ -230,7 +231,7 @@ function getSortedRowsByMode() {
     return rows
   }
   if (sortMode.value === 'abbr') {
-    rows.sort((a, b) => String(a.abbr || '').localeCompare(String(b.abbr || '')))
+    rows.sort(compareAccountAbbr)
     return rows
   }
   rows.sort((a, b) => new Date(a.eta_waveplate_full).getTime() - new Date(b.eta_waveplate_full).getTime())
