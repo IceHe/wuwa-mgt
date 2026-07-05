@@ -427,8 +427,7 @@ function isAllCompleted(map) {
 function isAllChecklistCompleted(id) {
   return (
     isCompletedStatus(dailyTaskStatusInput.value[id]) &&
-    isCompletedStatus(dailyNestStatusInput.value[id]) &&
-    isCompletedStatus(weeklySynthesisStatusInput.value[id])
+    isCompletedStatus(dailyNestStatusInput.value[id])
   )
 }
 
