@@ -12,7 +12,18 @@
     <td>
       <div class="account-cell">
         <div class="account-main">
-          <strong><span class="abbr-mark">{{ account.abbr }}</span>: <span class="id-text">{{ account.id }}</span></strong>
+          <strong>
+            <span class="abbr-mark">{{ account.abbr }}</span>:
+            <button
+              type="button"
+              class="copy-id-button"
+              :title="copiedAccountId ? '已复制账号 ID' : '点击复制账号 ID'"
+              @click.stop="copyAccountId"
+            >
+              <span class="id-text">{{ account.id }}</span>
+              <span v-if="copiedAccountId" class="copy-id-feedback">已复制</span>
+            </button>
+          </strong>
         </div>
         <div class="account-sub meta">
           <span class="phone-tail-text">{{ phoneTail(account.phone_number) }}</span>
@@ -164,7 +175,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import {
   WAVEPLATE_CAP,
   WAVEPLATE_CRYSTAL_CAP,
@@ -195,6 +206,8 @@ const emit = defineEmits([
 ])
 
 const quickMenuOpen = ref(false)
+const copiedAccountId = ref(false)
+let copyResetTimer = null
 const liveEnergy = computed(() => deriveEnergySnapshot(props.account, props.clockNowMs))
 const liveAccount = computed(() => ({
   ...props.account,
@@ -216,6 +229,27 @@ function toggleQuickMenu() {
 
 function runQuickAction(type, amount) {
   emit(type, props.account.id, amount)
+}
+
+async function copyAccountId() {
+  const accountId = String(props.account.id || '').trim()
+  if (!accountId) return
+  try {
+    await navigator.clipboard.writeText(accountId)
+  } catch {
+    const input = document.createElement('input')
+    input.value = accountId
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+  }
+  copiedAccountId.value = true
+  if (copyResetTimer) clearTimeout(copyResetTimer)
+  copyResetTimer = setTimeout(() => {
+    copiedAccountId.value = false
+    copyResetTimer = null
+  }, 1200)
 }
 
 function phoneTail(phoneNumber) {
@@ -352,4 +386,8 @@ function remarkPreview(value) {
 function isLongRemark(value) {
   return String(value || '').trim().length > 24
 }
+
+onUnmounted(() => {
+  if (copyResetTimer) clearTimeout(copyResetTimer)
+})
 </script>

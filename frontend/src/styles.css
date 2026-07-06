@@ -1021,6 +1021,35 @@ table {
   font-weight: 600;
 }
 
+.copy-id-button {
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.2;
+  margin: 0;
+  padding: 1px 3px;
+}
+
+.copy-id-button:hover {
+  background: #eef4ff;
+}
+
+.copy-id-button:focus-visible {
+  outline: 2px solid #1664d9;
+  outline-offset: 2px;
+}
+
+.copy-id-feedback {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
 .account-cell {
   display: flex;
   flex-direction: column;
