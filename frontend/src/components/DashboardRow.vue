@@ -45,18 +45,22 @@
       </button>
     </td>
     <td>
-      <select
+      <input
         :value="tacet"
+        :list="tacetListId"
         :class="['tacet-select', tacetClass(tacet)]"
         :title="tacet || '未设置无音区'"
         @click.stop
-        @change="$emit('update-tacet', account.id, $event.target.value)"
-      >
-        <option value=""></option>
+        @change="$emit('update-tacet', account.id, $event.target.value.trim())"
+        placeholder="输入无音区"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <datalist :id="tacetListId">
         <option v-for="option in tacetOptions" :key="option.value" :value="option.value">
           {{ option.label }}
         </option>
-      </select>
+      </datalist>
     </td>
     <td>
       <button
@@ -213,6 +217,7 @@ const liveAccount = computed(() => ({
   ...props.account,
   ...liveEnergy.value,
 }))
+const tacetListId = computed(() => `tacet-options-${String(props.account.id)}`)
 const tacetOptions = [
   { value: '爱弥斯', label: '爱弥' },
   { value: '西格莉卡', label: '西格' },
