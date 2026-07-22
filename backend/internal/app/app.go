@@ -46,9 +46,6 @@ var (
 		"four_week_tower":              "four_week",
 		"four_week_ruins":              "four_week",
 	}
-	allowedTacetValues = map[string]struct{}{
-		"": {}, "爱弥斯": {}, "西格莉卡": {}, "旧暗": {}, "旧雷": {}, "达妮娅": {}, "绯雪": {}, "洛瑟拉": {},
-	}
 	doneStatuses = map[string]struct{}{"done": {}, "skipped": {}}
 )
 
@@ -394,7 +391,7 @@ func (a *App) runMigrations(ctx context.Context) error {
 			nickname VARCHAR(128) NOT NULL DEFAULT '',
 			phone_number VARCHAR(32),
 			remark TEXT,
-			tacet VARCHAR(32) NOT NULL DEFAULT '',
+			tacet TEXT NOT NULL DEFAULT '',
 			full_waveplate_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			full_waveplate_crystal INTEGER NOT NULL DEFAULT 0,
 			is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -451,7 +448,8 @@ func (a *App) runMigrations(ctx context.Context) error {
 		END $$;`,
 		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS full_waveplate_at TIMESTAMPTZ`,
 		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS full_waveplate_crystal INTEGER DEFAULT 0`,
-		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tacet VARCHAR(32) DEFAULT ''`,
+		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS tacet TEXT DEFAULT ''`,
+		`ALTER TABLE accounts ALTER COLUMN tacet TYPE TEXT`,
 		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`,
 		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`,
 		`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`,
@@ -742,9 +740,13 @@ func isDoneStatus(status string) bool {
 	return ok
 }
 
+func normalizeTacet(value string) string {
+	return strings.TrimSpace(value)
+}
+
 func validateTacet(value string) error {
-	if _, ok := allowedTacetValues[value]; !ok {
-		return fmt.Errorf("unsupported tacet: %s", value)
+	if len([]rune(value)) > 128 {
+		return fmt.Errorf("tacet is too long: max 128 characters")
 	}
 	return nil
 }

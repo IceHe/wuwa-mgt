@@ -20,6 +20,11 @@
             @input="$emit('update:value', $event.target.value)"
           />
         </label>
+        <div
+          v-if="renderedValue"
+          class="remark-editor-preview remark-markdown"
+          v-html="renderedValue"
+        ></div>
       </div>
 
       <div class="actions" style="justify-content: flex-end; margin-top: 12px">
@@ -34,6 +39,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { renderInlineMarkdown } from '../utils/markdown'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -48,4 +54,6 @@ const accountLabel = computed(() => {
   if (!props.account) return '-'
   return `${props.account.abbr} / ${props.account.id} / ${props.account.nickname}`
 })
+
+const renderedValue = computed(() => renderInlineMarkdown(props.value))
 </script>

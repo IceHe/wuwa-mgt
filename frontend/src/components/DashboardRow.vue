@@ -41,26 +41,23 @@
         :title="account.remark || ''"
         @click.stop="$emit('open-remark-editor', account)"
       >
-        {{ remarkPreview(account.remark) }}
+        <span class="remark-markdown" v-html="renderedRemark"></span>
       </button>
     </td>
     <td>
       <input
-        :value="tacet"
-        :list="tacetListId"
-        :class="['tacet-select', tacetClass(tacet)]"
-        :title="tacet || '未设置无音区'"
+        :value="tacetDraft"
+        :class="['tacet-input', tacetClass(tacetDraft)]"
+        :title="tacetDraft || '未设置无音区'"
         @click.stop
-        @change="$emit('update-tacet', account.id, $event.target.value.trim())"
+        @focus="beginTacetEdit"
+        @input="tacetDraft = $event.target.value"
+        @blur="commitTacet"
+        @keydown.enter="$event.target.blur()"
         placeholder="输入无音区"
         autocomplete="off"
         spellcheck="false"
       />
-      <datalist :id="tacetListId">
-        <option v-for="option in tacetOptions" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </datalist>
     </td>
     <td>
       <button
@@ -179,7 +176,7 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import {
   WAVEPLATE_CAP,
   WAVEPLATE_CRYSTAL_CAP,
@@ -187,6 +184,7 @@ import {
   WAVEPLATE_RECOVERY_SECONDS,
   deriveEnergySnapshot,
 } from '../utils/energy'
+import { renderInlineMarkdown } from '../utils/markdown'
 
 const props = defineProps({
   account: { type: Object, required: true },
@@ -211,22 +209,24 @@ const emit = defineEmits([
 
 const quickMenuOpen = ref(false)
 const copiedAccountId = ref(false)
+const tacetDraft = ref(props.tacet || '')
+const tacetEditing = ref(false)
 let copyResetTimer = null
 const liveEnergy = computed(() => deriveEnergySnapshot(props.account, props.clockNowMs))
 const liveAccount = computed(() => ({
   ...props.account,
   ...liveEnergy.value,
 }))
-const tacetListId = computed(() => `tacet-options-${String(props.account.id)}`)
-const tacetOptions = [
-  { value: '爱弥斯', label: '爱弥' },
-  { value: '西格莉卡', label: '西格' },
-  { value: '旧暗', label: '旧暗' },
-  { value: '旧雷', label: '旧雷' },
-  { value: '达妮娅', label: '达妮' },
-  { value: '绯雪', label: '绯雪' },
-  { value: '洛瑟拉', label: '洛瑟' },
-]
+const renderedRemark = computed(() => renderInlineMarkdown(props.account.remark))
+
+watch(
+  () => props.tacet,
+  (value) => {
+    if (!tacetEditing.value) {
+      tacetDraft.value = value || ''
+    }
+  },
+)
 
 function toggleQuickMenu() {
   quickMenuOpen.value = !quickMenuOpen.value
@@ -234,6 +234,18 @@ function toggleQuickMenu() {
 
 function runQuickAction(type, amount) {
   emit(type, props.account.id, amount)
+}
+
+function beginTacetEdit() {
+  tacetEditing.value = true
+}
+
+function commitTacet(event) {
+  const value = event.target.value.trim()
+  tacetEditing.value = false
+  tacetDraft.value = value
+  if (value === String(props.tacet || '').trim()) return
+  emit('update-tacet', props.account.id, value)
 }
 
 async function copyAccountId() {
@@ -273,7 +285,8 @@ function tacetClass(tacet) {
     '绯雪': 'tacet-feixue',
     '洛瑟拉': 'tacet-luosela',
   }
-  return colorMap[tacet] || 'tacet-empty'
+  if (!tacet) return 'tacet-empty'
+  return colorMap[tacet] || 'tacet-filled'
 }
 
 function energySummaryClass(account) {
@@ -380,12 +393,6 @@ function statusChipLabel(status) {
   if (normalized === 'done') return '完成'
   if (normalized === 'skipped') return '跳过'
   return '待办'
-}
-
-function remarkPreview(value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  return text
 }
 
 function isLongRemark(value) {

@@ -138,6 +138,7 @@ func (a *App) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "current_waveplate or full_waveplate_at is required")
 		return
 	}
+	input.Tacet = normalizeTacet(input.Tacet)
 	if err := validateTacet(input.Tacet); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -341,7 +342,9 @@ func (a *App) updateAccount(w http.ResponseWriter, r *http.Request, account Acco
 		return
 	}
 	if input.Tacet != nil {
-		if err := validateTacet(*input.Tacet); err != nil {
+		tacet := normalizeTacet(*input.Tacet)
+		input.Tacet = &tacet
+		if err := validateTacet(tacet); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -486,6 +489,7 @@ func (a *App) handleSetTacetByID(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid json")
 		return
 	}
+	input.Tacet = normalizeTacet(input.Tacet)
 	if err := validateTacet(input.Tacet); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

@@ -498,6 +498,30 @@ table {
   color: #7f879b;
 }
 
+.remark-markdown {
+  overflow-wrap: anywhere;
+}
+
+.remark-markdown strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.remark-markdown em {
+  color: #475569;
+  font-style: italic;
+}
+
+.remark-markdown code {
+  padding: 1px 4px;
+  border: 1px solid #d8e1ef;
+  border-radius: 4px;
+  background: #eef4ff;
+  color: #1e40af;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  font-size: 0.92em;
+}
+
 .periodic-table {
   table-layout: fixed;
 }
@@ -969,41 +993,47 @@ table {
   font-weight: 800;
 }
 
-.tacet-select.tacet-empty {
+.tacet-input.tacet-empty {
   color: #7f879b;
 }
 
-.tacet-select {
-  min-width: 74px;
-  padding: 6px 20px 6px 8px;
+.tacet-input {
+  width: 5.5em;
+  min-width: 5.5em;
+  max-width: 5.5em;
+  padding: 6px 8px;
   font-size: 13px;
 }
 
-.tacet-select.tacet-aimisi {
+.tacet-input.tacet-filled {
+  color: #334155;
+}
+
+.tacet-input.tacet-aimisi {
   color: #0f6b57;
 }
 
-.tacet-select.tacet-xigelika {
+.tacet-input.tacet-xigelika {
   color: #1d4ed8;
 }
 
-.tacet-select.tacet-old-dark {
+.tacet-input.tacet-old-dark {
   color: #7c3aed;
 }
 
-.tacet-select.tacet-old-thunder {
+.tacet-input.tacet-old-thunder {
   color: #b45309;
 }
 
-.tacet-select.tacet-daniya {
+.tacet-input.tacet-daniya {
   color: #be185d;
 }
 
-.tacet-select.tacet-feixue {
+.tacet-input.tacet-feixue {
   color: #dc2626;
 }
 
-.tacet-select.tacet-luosela {
+.tacet-input.tacet-luosela {
   color: #0f766e;
 }
 
@@ -1388,6 +1418,18 @@ td {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.remark-editor-preview {
+  margin-top: 8px;
+  min-height: 34px;
+  padding: 8px 10px;
+  border: 1px solid #dce3f1;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .fulltime-form {

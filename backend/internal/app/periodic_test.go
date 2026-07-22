@@ -2,6 +2,43 @@ package app
 
 import "testing"
 
+func TestLoadConfigDefaultsToCurrentVersionAnchors(t *testing.T) {
+	t.Setenv("APP_TZ", "Asia/Shanghai")
+	t.Setenv("RESET_HOUR", "4")
+	t.Setenv("PORT", "8765")
+	t.Setenv("CURRENT_FV_START", "")
+	t.Setenv("CURRENT_HV_START", "")
+
+	cfg, err := LoadConfig(t.TempDir())
+	if err != nil {
+		t.Fatalf("LoadConfig returned error: %v", err)
+	}
+	if got := cfg.CurrentFVStart.Format("2006-01-02"); got != "2026-07-10" {
+		t.Fatalf("CurrentFVStart = %s, want 2026-07-10", got)
+	}
+	if got := cfg.CurrentHVStart.Format("2006-01-02"); got != "2026-07-10" {
+		t.Fatalf("CurrentHVStart = %s, want 2026-07-10", got)
+	}
+
+	app := &App{cfg: cfg}
+	periodType, periodKey, start, end, err := app.resolvePeriodWindow("version_mainline", cfg.CurrentFVStart)
+	if err != nil {
+		t.Fatalf("resolvePeriodWindow(version_mainline) returned error: %v", err)
+	}
+	if periodType != "fv" {
+		t.Fatalf("resolvePeriodWindow(version_mainline) periodType = %q, want fv", periodType)
+	}
+	if periodKey != "fv-2026-07-10" {
+		t.Fatalf("resolvePeriodWindow(version_mainline) periodKey = %q, want fv-2026-07-10", periodKey)
+	}
+	if got := start.Format("2006-01-02"); got != "2026-07-10" {
+		t.Fatalf("resolvePeriodWindow(version_mainline) start = %s, want 2026-07-10", got)
+	}
+	if got := end.Format("2006-01-02"); got != "2026-08-20" {
+		t.Fatalf("resolvePeriodWindow(version_mainline) end = %s, want 2026-08-20", got)
+	}
+}
+
 func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 	loc := mustLocation(t)
 	app := &App{
