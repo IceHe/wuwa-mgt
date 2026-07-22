@@ -84,8 +84,8 @@
     <td>
       <div class="quick-row overview-quick-row compact-quick-row">
         <template v-if="!quickMenuOpen">
-          <button class="btn-gain" @click.stop="$emit('gain', account.id, 60)">+60</button>
-          <button class="btn-spend" @click.stop="$emit('spend', account.id, 60)">-60</button>
+          <button class="btn-gain btn-energy-60" @click.stop="$emit('gain', account.id, 60)">+60</button>
+          <button class="btn-spend btn-energy-60" @click.stop="$emit('spend', account.id, 60)">-60</button>
           <button
             type="button"
             class="quick-more-btn"
@@ -95,8 +95,8 @@
           </button>
         </template>
         <template v-else>
-          <button class="btn-gain" @click.stop="runQuickAction('gain', 40)">+40</button>
-          <button class="btn-spend" @click.stop="runQuickAction('spend', 40)">-40</button>
+          <button class="btn-gain btn-energy-40" @click.stop="runQuickAction('gain', 40)">+40</button>
+          <button class="btn-spend btn-energy-40" @click.stop="runQuickAction('spend', 40)">-40</button>
           <button type="button" class="quick-more-btn quick-more-back-btn" @click.stop="toggleQuickMenu">
             返回
           </button>

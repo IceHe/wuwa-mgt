@@ -265,23 +265,45 @@ button.warn {
 }
 
 button.btn-gain {
-  color: #2f6f4f;
-  background: #eef7f1;
-  border-color: #cfe5d8;
+  color: #166534;
+  background: #ecfdf3;
+  border-color: #86efac;
+  font-weight: 800;
 }
 
 button.btn-gain:hover {
-  background: #e7f2eb;
+  background: #dcfce7;
 }
 
 button.btn-spend {
-  color: #7a5a2a;
-  background: #fbf6ee;
-  border-color: #eadcc6;
+  color: #b42318;
+  background: #fef2f2;
+  border-color: #fca5a5;
+  font-weight: 800;
 }
 
 button.btn-spend:hover {
-  background: #f6efdf;
+  background: #fee2e2;
+}
+
+button.btn-gain.btn-energy-40 {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+button.btn-gain.btn-energy-40:hover {
+  background: #dbeafe;
+}
+
+button.btn-spend.btn-energy-40 {
+  color: #b45309;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+button.btn-spend.btn-energy-40:hover {
+  background: #ffedd5;
 }
 
 table {
