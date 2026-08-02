@@ -39,7 +39,7 @@ var (
 		"version_hologram_challenge":   "fv",
 		"version_echo_template_adjust": "fv",
 		"version_mainline":             "fv",
-		"temp_racing":                  "fv",
+		"temp_photo":                   "fv",
 		"temp_roguelike":               "fv",
 		"hv_trial_character":           "hv",
 		"monthly_tower_exchange":       "monthly",
@@ -659,8 +659,12 @@ func (a *App) resolvePeriodWindow(flagKey string, day time.Time) (string, string
 		versionDays := fullVersionDaysFor(a.cfg.CurrentFVStart)
 		return periodType, "fv-" + a.cfg.CurrentFVStart.Format("2006-01-02"), a.cfg.CurrentFVStart, a.cfg.CurrentFVStart.AddDate(0, 0, versionDays-1), nil
 	case "hv":
-		versionDays := halfVersionDaysFor(a.cfg.CurrentFVStart)
-		return periodType, "hv-" + a.cfg.CurrentHVStart.Format("2006-01-02"), a.cfg.CurrentHVStart, a.cfg.CurrentHVStart.AddDate(0, 0, versionDays-1), nil
+		end := a.cfg.CurrentHVStart.AddDate(0, 0, halfVersionDaysFor(a.cfg.CurrentFVStart)-1)
+		fullVersionEnd := a.cfg.CurrentFVStart.AddDate(0, 0, fullVersionDaysFor(a.cfg.CurrentFVStart)-1)
+		if a.cfg.CurrentHVStart.After(a.cfg.CurrentFVStart) {
+			end = fullVersionEnd
+		}
+		return periodType, "hv-" + a.cfg.CurrentHVStart.Format("2006-01-02"), a.cfg.CurrentHVStart, end, nil
 	case "four_week":
 		anchor := a.cfg.FourWeekRuinsAnchor
 		if flagKey == "four_week_tower" {

@@ -192,6 +192,30 @@ nav a.router-link-active {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #f8fbff;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.refresh-indicator:hover:not(:disabled) {
+  border-color: #aebfda;
+  background: #eef5ff;
+}
+
+.refresh-indicator:focus-visible {
+  outline: 2px solid rgba(22, 100, 217, 0.32);
+  outline-offset: 2px;
+}
+
+.refresh-indicator:disabled {
+  cursor: progress;
+  opacity: 0.78;
+}
+
+.refresh-indicator.refreshing .refresh-pie {
+  animation: pie-blink 0.7s ease-in-out infinite;
 }
 
 .refresh-pie {
@@ -656,7 +680,7 @@ table {
   background: #f7fee7;
 }
 
-.periodic-table th.col-temp-racing {
+.periodic-table th.col-temp-photo {
   color: #a16207;
   background: #fff8e7;
 }
@@ -730,7 +754,7 @@ table {
   background: #eefaf1;
 }
 
-.periodic-table td.cell-temp-racing {
+.periodic-table td.cell-temp-photo {
   background: #fff8e7;
 }
 
@@ -959,7 +983,7 @@ table {
   color: #4d7c0f;
 }
 
-.status-item.flag-temp-racing .status-label {
+.status-item.flag-temp-photo .status-label {
   color: #a16207;
 }
 

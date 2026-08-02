@@ -49,7 +49,7 @@
               <th class="col-version-hologram">全息挑战</th>
               <th class="col-version-template">声骸模板</th>
               <th class="col-version-mainline">主线</th>
-              <th class="col-temp-racing">赛车</th>
+              <th class="col-temp-photo">拍照</th>
               <th class="col-temp-roguelike">肉鸽</th>
               <th class="col-hv-trial">角色试用</th>
               <th class="col-monthly-tower">深塔兑换所</th>
@@ -109,10 +109,10 @@
                   </button>
                 </label>
               </td>
-              <td class="cell-temp-racing">
-                <label :class="['status-item', 'flag-temp-racing', statusClass(tempRacingInput[acc.id]), { 'flag-all-done': allDoneFlags.temp_racing }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(tempRacingInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'temp_racing')">
-                    {{ statusLabel(tempRacingInput[acc.id]) }}
+              <td class="cell-temp-photo">
+                <label :class="['status-item', 'flag-temp-photo', statusClass(tempPhotoInput[acc.id]), { 'flag-all-done': allDoneFlags.temp_photo }]">
+                  <button type="button" class="status-toggle" :title="statusLabel(tempPhotoInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'temp_photo')">
+                    {{ statusLabel(tempPhotoInput[acc.id]) }}
                   </button>
                 </label>
               </td>
@@ -180,7 +180,7 @@ const versionSmallCoralInput = ref({})
 const versionHologramInput = ref({})
 const versionEchoTemplateInput = ref({})
 const versionMainlineInput = ref({})
-const tempRacingInput = ref({})
+const tempPhotoInput = ref({})
 const tempRoguelikeInput = ref({})
 const hvTrialCharacterInput = ref({})
 const monthlyTowerExchangeInput = ref({})
@@ -211,7 +211,7 @@ const allDoneFlags = computed(() => ({
   version_hologram_challenge: isAllCompleted(versionHologramInput.value),
   version_echo_template_adjust: isAllCompleted(versionEchoTemplateInput.value),
   version_mainline: isAllCompleted(versionMainlineInput.value),
-  temp_racing: isAllCompleted(tempRacingInput.value),
+  temp_photo: isAllCompleted(tempPhotoInput.value),
   temp_roguelike: isAllCompleted(tempRoguelikeInput.value),
   hv_trial_character: isAllCompleted(hvTrialCharacterInput.value),
   monthly_tower_exchange: isAllCompleted(monthlyTowerExchangeInput.value),
@@ -271,7 +271,7 @@ function statusMapByKey(flagKey) {
   if (flagKey === 'version_hologram_challenge') return versionHologramInput.value
   if (flagKey === 'version_echo_template_adjust') return versionEchoTemplateInput.value
   if (flagKey === 'version_mainline') return versionMainlineInput.value
-  if (flagKey === 'temp_racing') return tempRacingInput.value
+  if (flagKey === 'temp_photo') return tempPhotoInput.value
   if (flagKey === 'temp_roguelike') return tempRoguelikeInput.value
   if (flagKey === 'hv_trial_character') return hvTrialCharacterInput.value
   if (flagKey === 'monthly_tower_exchange') return monthlyTowerExchangeInput.value
@@ -294,7 +294,7 @@ async function refresh() {
     versionHologramInput.value[acc.id] = normalizeStatus(acc.version_hologram_challenge_status, acc.version_hologram_challenge)
     versionEchoTemplateInput.value[acc.id] = normalizeStatus(acc.version_echo_template_adjust_status, acc.version_echo_template_adjust)
     versionMainlineInput.value[acc.id] = normalizeStatus(acc.version_mainline_status, acc.version_mainline)
-    tempRacingInput.value[acc.id] = normalizeStatus(acc.temp_racing_status, acc.temp_racing)
+    tempPhotoInput.value[acc.id] = normalizeStatus(acc.temp_photo_status, acc.temp_photo)
     tempRoguelikeInput.value[acc.id] = normalizeStatus(acc.temp_roguelike_status, acc.temp_roguelike)
     hvTrialCharacterInput.value[acc.id] = normalizeStatus(acc.hv_trial_character_status, acc.hv_trial_character)
     monthlyTowerExchangeInput.value[acc.id] = normalizeStatus(acc.monthly_tower_exchange_status, acc.monthly_tower_exchange)

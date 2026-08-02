@@ -147,8 +147,8 @@ type PeriodicAccountOut struct {
 	VersionEchoTemplateAdjustStatus string                       `json:"version_echo_template_adjust_status"`
 	VersionMainline                 bool                         `json:"version_mainline"`
 	VersionMainlineStatus           string                       `json:"version_mainline_status"`
-	TempRacing                      bool                         `json:"temp_racing"`
-	TempRacingStatus                string                       `json:"temp_racing_status"`
+	TempPhoto                       bool                         `json:"temp_photo"`
+	TempPhotoStatus                 string                       `json:"temp_photo_status"`
 	TempRoguelike                   bool                         `json:"temp_roguelike"`
 	TempRoguelikeStatus             string                       `json:"temp_roguelike_status"`
 	HVTrialCharacter                bool                         `json:"hv_trial_character"`

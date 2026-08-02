@@ -3,17 +3,26 @@
     <div class="actions dashboard-toolbar">
       <div class="actions dashboard-toolbar-main">
         <h2 style="margin: 0">每日每周总览</h2>
-        <div class="refresh-indicator" title="每 60 秒自动刷新">
+        <button
+          type="button"
+          class="refresh-indicator"
+          :class="{ refreshing }"
+          title="点击刷新；每 30 秒自动刷新"
+          :disabled="refreshing"
+          :aria-busy="refreshing ? 'true' : 'false'"
+          aria-label="刷新每日每周总览数据"
+          @click="refreshNow"
+        >
           <div
             class="refresh-pie"
-            :class="{ urgent: countdownSeconds <= 8 }"
+            :class="{ urgent: countdownSeconds <= 5 }"
             :style="{
-              background: `conic-gradient(${countdownSeconds <= 8 ? '#c62026' : '#1664d9'} ${countdownRemainProgress * 360}deg, #dce3f1 ${countdownRemainProgress * 360}deg 360deg)`,
+              background: `conic-gradient(${countdownSeconds <= 5 ? '#c62026' : '#1664d9'} ${countdownRemainProgress * 360}deg, #dce3f1 ${countdownRemainProgress * 360}deg 360deg)`,
             }"
             aria-hidden="true"
           ></div>
           <span class="refresh-text">{{ countdownSeconds }}s</span>
-        </div>
+        </button>
       </div>
       <div class="actions dashboard-toolbar-side">
         <label style="max-width: 260px">
@@ -121,7 +130,7 @@ import { compareAccountAbbr } from '../utils/accountSort'
 import { deriveEnergySnapshot } from '../utils/energy'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
-const REFRESH_INTERVAL_SECONDS = 60
+const REFRESH_INTERVAL_SECONDS = 30
 const LAST_EDIT_STORAGE_KEY = 'wuwa_dashboard_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_dashboard_sort_mode_v1'
 const SORT_MODE_OPTIONS = ['eta', 'recent_edit', 'oldest_edit', 'abbr']
@@ -147,9 +156,9 @@ const PERIODIC_STATUS_FIELDS = {
     statusField: 'version_mainline_status',
     boolField: 'version_mainline',
   },
-  temp_racing: {
-    statusField: 'temp_racing_status',
-    boolField: 'temp_racing',
+  temp_photo: {
+    statusField: 'temp_photo_status',
+    boolField: 'temp_photo',
   },
   temp_roguelike: {
     statusField: 'temp_roguelike_status',
@@ -217,7 +226,7 @@ const periodicModal = ref({
 
 let fetchTimer = null
 let countdownTimer = null
-let refreshing = false
+const refreshing = ref(false)
 
 function getSortedRowsByMode() {
   const rows = [...accounts.value]
@@ -278,8 +287,8 @@ const selectedRemarkAccount = computed(() => (
 const fullDateMin = computed(() => getDateKeyInTZ(new Date()))
 
 async function refresh() {
-  if (refreshing) return
-  refreshing = true
+  if (refreshing.value) return false
+  refreshing.value = true
   try {
     const rows = await api.listDashboardAccounts()
     const snapshotMs = Date.now()
@@ -293,9 +302,35 @@ async function refresh() {
       weeklySynthesisStatusInput.value[acc.id] = normalizeStatus(acc.weekly_synthesis_status, acc.weekly_synthesis)
     }
     syncHighlightedAccountId()
+    return true
   } finally {
-    refreshing = false
+    refreshing.value = false
   }
+}
+
+function resetCountdown() {
+  countdownSeconds.value = REFRESH_INTERVAL_SECONDS
+}
+
+function stopFetchTimer() {
+  if (!fetchTimer) return
+  clearInterval(fetchTimer)
+  fetchTimer = null
+}
+
+function startFetchTimer() {
+  stopFetchTimer()
+  fetchTimer = setInterval(async () => {
+    const refreshed = await refresh()
+    if (refreshed) resetCountdown()
+  }, REFRESH_INTERVAL_SECONDS * 1000)
+}
+
+async function refreshNow() {
+  const refreshed = await refresh()
+  if (!refreshed) return
+  resetCountdown()
+  startFetchTimer()
 }
 
 function replaceAccountPatch(id, patch) {
@@ -780,12 +815,7 @@ function syncHighlightedAccountId() {
 
 onMounted(async () => {
   loadLastEditedMap()
-  await refresh()
-  countdownSeconds.value = REFRESH_INTERVAL_SECONDS
-  fetchTimer = setInterval(async () => {
-    await refresh()
-    countdownSeconds.value = REFRESH_INTERVAL_SECONDS
-  }, REFRESH_INTERVAL_SECONDS * 1000)
+  await refreshNow()
   countdownTimer = setInterval(() => {
     clockNowMs.value = Date.now()
     if (countdownSeconds.value > 0) countdownSeconds.value -= 1
@@ -799,7 +829,7 @@ watch(sortMode, () => {
 })
 
 onUnmounted(() => {
-  if (fetchTimer) clearInterval(fetchTimer)
+  stopFetchTimer()
   if (countdownTimer) clearInterval(countdownTimer)
 })
 </script>

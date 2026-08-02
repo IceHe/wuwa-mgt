@@ -16,8 +16,8 @@ func TestLoadConfigDefaultsToCurrentVersionAnchors(t *testing.T) {
 	if got := cfg.CurrentFVStart.Format("2006-01-02"); got != "2026-07-10" {
 		t.Fatalf("CurrentFVStart = %s, want 2026-07-10", got)
 	}
-	if got := cfg.CurrentHVStart.Format("2006-01-02"); got != "2026-07-10" {
-		t.Fatalf("CurrentHVStart = %s, want 2026-07-10", got)
+	if got := cfg.CurrentHVStart.Format("2006-01-02"); got != "2026-07-30" {
+		t.Fatalf("CurrentHVStart = %s, want 2026-07-30", got)
 	}
 
 	app := &App{cfg: cfg}
@@ -37,6 +37,23 @@ func TestLoadConfigDefaultsToCurrentVersionAnchors(t *testing.T) {
 	if got := end.Format("2006-01-02"); got != "2026-08-20" {
 		t.Fatalf("resolvePeriodWindow(version_mainline) end = %s, want 2026-08-20", got)
 	}
+
+	periodType, periodKey, start, end, err = app.resolvePeriodWindow("hv_trial_character", cfg.CurrentHVStart)
+	if err != nil {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) returned error: %v", err)
+	}
+	if periodType != "hv" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodType = %q, want hv", periodType)
+	}
+	if periodKey != "hv-2026-07-30" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodKey = %q, want hv-2026-07-30", periodKey)
+	}
+	if got := start.Format("2006-01-02"); got != "2026-07-30" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) start = %s, want 2026-07-30", got)
+	}
+	if got := end.Format("2006-01-02"); got != "2026-08-20" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) end = %s, want 2026-08-20", got)
+	}
 }
 
 func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
@@ -55,7 +72,7 @@ func TestResolvePeriodWindowUsesUpdatedVersionAnchors(t *testing.T) {
 		"version_hologram_challenge",
 		"version_echo_template_adjust",
 		"version_mainline",
-		"temp_racing",
+		"temp_photo",
 		"temp_roguelike",
 	}
 
@@ -101,10 +118,10 @@ func TestResolvePeriodWindowUsesDefaultLengthForNormalVersions(t *testing.T) {
 	app := &App{
 		cfg: Config{
 			CurrentFVStart: mustDateInLocation("", "2026-07-10", loc),
-			CurrentHVStart: mustDateInLocation("", "2026-07-31", loc),
+			CurrentHVStart: mustDateInLocation("", "2026-07-30", loc),
 		},
 	}
-	day := mustDateInLocation("", "2026-07-31", loc)
+	day := mustDateInLocation("", "2026-07-30", loc)
 
 	periodType, periodKey, start, end, err := app.resolvePeriodWindow("version_mainline", day)
 	if err != nil {
@@ -130,11 +147,11 @@ func TestResolvePeriodWindowUsesDefaultLengthForNormalVersions(t *testing.T) {
 	if periodType != "hv" {
 		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodType = %q, want hv", periodType)
 	}
-	if periodKey != "hv-2026-07-31" {
-		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodKey = %q, want hv-2026-07-31", periodKey)
+	if periodKey != "hv-2026-07-30" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) periodKey = %q, want hv-2026-07-30", periodKey)
 	}
-	if got := start.Format("2006-01-02"); got != "2026-07-31" {
-		t.Fatalf("resolvePeriodWindow(hv_trial_character) start = %s, want 2026-07-31", got)
+	if got := start.Format("2006-01-02"); got != "2026-07-30" {
+		t.Fatalf("resolvePeriodWindow(hv_trial_character) start = %s, want 2026-07-30", got)
 	}
 	if got := end.Format("2006-01-02"); got != "2026-08-20" {
 		t.Fatalf("resolvePeriodWindow(hv_trial_character) end = %s, want 2026-08-20", got)
