@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -192,6 +193,9 @@ func (a *App) handleCreateAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if input.CurrentWaveplate != nil || input.FullWaveplateAt != nil {
+		a.bumpEnergyRevision()
+	}
 	writeJSON(w, http.StatusOK, a.accountPayload(account, now))
 }
 
@@ -361,6 +365,7 @@ func (a *App) updateAccount(w http.ResponseWriter, r *http.Request, account Acco
 			return
 		}
 	}
+	needsEnergyRevision := input.CurrentWaveplate != nil || input.CurrentWaveplateCrystal != nil || input.FullWaveplateAt != nil
 
 	ctx, cancel := a.withTimeout(r)
 	defer cancel()
@@ -397,6 +402,9 @@ func (a *App) updateAccount(w http.ResponseWriter, r *http.Request, account Acco
 		}
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if needsEnergyRevision {
+		a.bumpEnergyRevision()
 	}
 	writeJSON(w, http.StatusOK, a.accountPayload(updated, a.now()))
 }
@@ -1023,6 +1031,7 @@ func (a *App) setEnergy(w http.ResponseWriter, r *http.Request, account Account)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	a.bumpEnergyRevision()
 	writeJSON(w, http.StatusOK, a.energyPayload(updated, now))
 }
 
@@ -1113,6 +1122,7 @@ func (a *App) changeEnergy(w http.ResponseWriter, r *http.Request, account Accou
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	a.bumpEnergyRevision()
 	writeJSON(w, http.StatusOK, a.energyPayload(updated, now))
 }
 
@@ -1355,6 +1365,44 @@ func (a *App) handleDashboardAccounts(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ETAWaveplateFull.Before(out[j].ETAWaveplateFull) })
 	writeJSON(w, http.StatusOK, out)
+}
+
+func (a *App) handleDashboardEnergyRevision(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, DashboardEnergyRevisionOut{Revision: a.energyRevisionValue()})
+}
+
+func (a *App) handleNotifyDashboardEnergyRevision(w http.ResponseWriter, r *http.Request) {
+	if !a.allowEnergyRevisionNotify(w, r) {
+		return
+	}
+	writeJSON(w, http.StatusOK, DashboardEnergyRevisionOut{Revision: a.bumpEnergyRevision()})
+}
+
+func (a *App) allowEnergyRevisionNotify(w http.ResponseWriter, r *http.Request) bool {
+	expected := strings.TrimSpace(a.cfg.EnergyNotifyToken)
+	if expected != "" {
+		got := strings.TrimSpace(r.Header.Get("X-Notify-Token"))
+		if got == "" {
+			got = strings.TrimSpace(r.Header.Get("Authorization"))
+			if strings.HasPrefix(strings.ToLower(got), "bearer ") {
+				got = strings.TrimSpace(got[7:])
+			}
+		}
+		if got == "" {
+			writeError(w, http.StatusUnauthorized, "missing notify token")
+			return false
+		}
+		if subtle.ConstantTimeCompare([]byte(got), []byte(expected)) != 1 {
+			writeError(w, http.StatusForbidden, "invalid notify token")
+			return false
+		}
+		return true
+	}
+	if !isLoopbackRemoteAddr(r.RemoteAddr) {
+		writeError(w, http.StatusForbidden, "notify endpoint is local only")
+		return false
+	}
+	return true
 }
 
 func defaultStatus(status string) string {

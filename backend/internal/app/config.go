@@ -17,6 +17,7 @@ type Config struct {
 	AuthBaseURL                string
 	AuthRequiredPermission     string
 	AuthValidateTimeoutSeconds float64
+	EnergyNotifyToken          string
 	FourWeekTowerAnchor        time.Time
 	FourWeekRuinsAnchor        time.Time
 	CurrentFVStart             time.Time
@@ -60,6 +61,7 @@ func LoadConfig(root string) (Config, error) {
 		AuthBaseURL:                strings.TrimRight(getenv("AUTH_BASE_URL", "http://127.0.0.1:8080"), "/"),
 		AuthRequiredPermission:     getenv("AUTH_REQUIRED_PERMISSION", "manage"),
 		AuthValidateTimeoutSeconds: getenvFloat("AUTH_VALIDATE_TIMEOUT_SECONDS", 3),
+		EnergyNotifyToken:          getenv("DASHBOARD_ENERGY_NOTIFY_TOKEN", ""),
 		FourWeekTowerAnchor:        mustDateInLocation("FOUR_WEEK_TOWER_ANCHOR", "2026-03-30", loc),
 		FourWeekRuinsAnchor:        mustDateInLocation("FOUR_WEEK_RUINS_ANCHOR", "2026-03-16", loc),
 		CurrentFVStart:             mustDateInLocation("CURRENT_FV_START", "2026-07-10", loc),

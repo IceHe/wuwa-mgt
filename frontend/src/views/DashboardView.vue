@@ -6,10 +6,10 @@
         <button
           type="button"
           class="refresh-indicator"
-          :class="{ refreshing }"
+          :class="{ refreshing: refreshing || refreshCommandBusy }"
           title="点击刷新；每 30 秒自动刷新"
-          :disabled="refreshing"
-          :aria-busy="refreshing ? 'true' : 'false'"
+          :disabled="refreshing || refreshCommandBusy"
+          :aria-busy="refreshing || refreshCommandBusy ? 'true' : 'false'"
           aria-label="刷新每日每周总览数据"
           @click="refreshNow"
         >
@@ -131,6 +131,7 @@ import { deriveEnergySnapshot } from '../utils/energy'
 import { loadStoredValue, saveStoredValue } from '../utils/persistentState'
 
 const REFRESH_INTERVAL_SECONDS = 30
+const ENERGY_REVISION_POLL_SECONDS = 3
 const LAST_EDIT_STORAGE_KEY = 'wuwa_dashboard_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_dashboard_sort_mode_v1'
 const SORT_MODE_OPTIONS = ['eta', 'recent_edit', 'oldest_edit', 'abbr']
@@ -192,6 +193,8 @@ const weeklyBossStatusInput = ref({})
 const weeklySynthesisStatusInput = ref({})
 const highlightedAccountId = ref(null)
 const countdownSeconds = ref(REFRESH_INTERVAL_SECONDS)
+const lastEnergyRevision = ref(null)
+const refreshCommandBusy = ref(false)
 const lastEditedMap = ref({})
 const orderFrozen = ref(false)
 const frozenOrderIds = ref([])
@@ -227,6 +230,8 @@ const periodicModal = ref({
 let fetchTimer = null
 let countdownTimer = null
 const refreshing = ref(false)
+let revisionTimer = null
+let revisionTimerBusy = false
 
 function getSortedRowsByMode() {
   const rows = [...accounts.value]
@@ -321,16 +326,84 @@ function stopFetchTimer() {
 function startFetchTimer() {
   stopFetchTimer()
   fetchTimer = setInterval(async () => {
-    const refreshed = await refresh()
+    if (document.visibilityState === 'hidden') return
+    const revision = await fetchEnergyRevision().catch(() => null)
+    const refreshed = await refreshWithRevision(revision)
     if (refreshed) resetCountdown()
   }, REFRESH_INTERVAL_SECONDS * 1000)
 }
 
-async function refreshNow() {
+function stopRevisionTimer() {
+  if (!revisionTimer) return
+  clearInterval(revisionTimer)
+  revisionTimer = null
+}
+
+function startRevisionTimer() {
+  stopRevisionTimer()
+  revisionTimer = setInterval(() => {
+    if (document.visibilityState === 'hidden') return
+    void checkEnergyRevision()
+  }, ENERGY_REVISION_POLL_SECONDS * 1000)
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    void checkEnergyRevision()
+  }
+}
+
+async function fetchEnergyRevision() {
+  const data = await api.getDashboardEnergyRevision()
+  return Number(data?.revision ?? 0)
+}
+
+async function refreshWithRevision(revision) {
   const refreshed = await refresh()
-  if (!refreshed) return
-  resetCountdown()
-  startFetchTimer()
+  if (!refreshed) return false
+  if (revision !== null && revision !== undefined) {
+    lastEnergyRevision.value = revision
+  }
+  return true
+}
+
+async function refreshNow() {
+  if (refreshCommandBusy.value) return false
+  refreshCommandBusy.value = true
+  try {
+    const revision = await fetchEnergyRevision().catch(() => null)
+    const refreshed = await refreshWithRevision(revision)
+    if (!refreshed) return false
+    resetCountdown()
+    startFetchTimer()
+    return true
+  } finally {
+    refreshCommandBusy.value = false
+  }
+}
+
+async function checkEnergyRevision() {
+  if (revisionTimerBusy || refreshCommandBusy.value || refreshing.value) return false
+  revisionTimerBusy = true
+  try {
+    const revision = await fetchEnergyRevision().catch(() => null)
+    if (revision === null) return false
+    if (lastEnergyRevision.value === null) {
+      const refreshed = await refreshWithRevision(revision)
+      if (!refreshed) return false
+      resetCountdown()
+      startFetchTimer()
+      return true
+    }
+    if (revision === lastEnergyRevision.value) return false
+    const refreshed = await refreshWithRevision(revision)
+    if (!refreshed) return false
+    resetCountdown()
+    startFetchTimer()
+    return true
+  } finally {
+    revisionTimerBusy = false
+  }
 }
 
 function replaceAccountPatch(id, patch) {
@@ -816,6 +889,9 @@ function syncHighlightedAccountId() {
 onMounted(async () => {
   loadLastEditedMap()
   await refreshNow()
+  startRevisionTimer()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  void checkEnergyRevision()
   countdownTimer = setInterval(() => {
     clockNowMs.value = Date.now()
     if (countdownSeconds.value > 0) countdownSeconds.value -= 1
@@ -830,6 +906,8 @@ watch(sortMode, () => {
 
 onUnmounted(() => {
   stopFetchTimer()
+  stopRevisionTimer()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   if (countdownTimer) clearInterval(countdownTimer)
 })
 </script>

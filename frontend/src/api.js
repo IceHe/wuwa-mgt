@@ -50,6 +50,7 @@ async function request(path, options = {}) {
 
 export const api = {
   listDashboardAccounts: () => request('/dashboard/accounts'),
+  getDashboardEnergyRevision: () => request('/dashboard/energy-revision'),
   listPeriodicAccounts: () => request('/periodic/accounts'),
   listAccounts: () => request('/accounts'),
   getAccountById: (id) => request(`/accounts/by-id/${encodeURIComponent(id)}`),

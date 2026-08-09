@@ -7,11 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -50,10 +52,11 @@ var (
 )
 
 type App struct {
-	cfg        Config
-	db         *sql.DB
-	httpClient *http.Client
-	server     *http.Server
+	cfg            Config
+	db             *sql.DB
+	httpClient     *http.Client
+	server         *http.Server
+	energyRevision atomic.Uint64
 }
 
 func New(cfg Config) (*App, error) {
@@ -114,6 +117,8 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cleanup-timer/sessions/", a.dispatchCleanupSessionsRoutes)
 
 	mux.HandleFunc("/dashboard/accounts", a.dispatchMethod(http.MethodGet, a.handleDashboardAccounts))
+	mux.HandleFunc("/dashboard/energy-revision", a.dispatchMethod(http.MethodGet, a.handleDashboardEnergyRevision))
+	mux.HandleFunc("/internal/dashboard/energy-revision", a.dispatchMethod(http.MethodPost, a.handleNotifyDashboardEnergyRevision))
 	mux.HandleFunc("/periodic/accounts", a.dispatchMethod(http.MethodGet, a.handlePeriodicAccounts))
 
 	mux.HandleFunc("/task-templates", a.dispatchTaskTemplatesCollection)
@@ -309,7 +314,7 @@ func cloneURL(in *url.URL) *url.URL {
 
 func (a *App) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions || r.URL.Path == "/healthz" {
+		if r.Method == http.MethodOptions || r.URL.Path == "/healthz" || isInternalEnergyRevisionNotifyRequest(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -329,6 +334,27 @@ func (a *App) authMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func isInternalEnergyRevisionNotifyRequest(r *http.Request) bool {
+	return r.Method == http.MethodPost && r.URL.Path == "/internal/dashboard/energy-revision"
+}
+
+func isLoopbackRemoteAddr(remoteAddr string) bool {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(remoteAddr))
+	if err != nil {
+		host = strings.TrimSpace(remoteAddr)
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func (a *App) energyRevisionValue() uint64 {
+	return a.energyRevision.Load()
+}
+
+func (a *App) bumpEnergyRevision() uint64 {
+	return a.energyRevision.Add(1)
 }
 
 func extractTokenFromHeaders(r *http.Request) string {

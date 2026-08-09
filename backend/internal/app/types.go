@@ -123,6 +123,10 @@ type DashboardAccountOut struct {
 	DoneCount               int        `json:"done_count"`
 }
 
+type DashboardEnergyRevisionOut struct {
+	Revision uint64 `json:"revision"`
+}
+
 type PeriodicWindowOut struct {
 	Start string `json:"start"`
 	End   string `json:"end"`

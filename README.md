@@ -95,6 +95,7 @@ RESET_HOUR=4
 AUTH_BASE_URL=http://127.0.0.1:8080
 AUTH_REQUIRED_PERMISSION=manage
 AUTH_VALIDATE_TIMEOUT_SECONDS=3
+DASHBOARD_ENERGY_NOTIFY_TOKEN=
 FOUR_WEEK_TOWER_ANCHOR=2026-03-30
 FOUR_WEEK_RUINS_ANCHOR=2026-03-16
 CURRENT_FV_START=2026-07-10
@@ -107,8 +108,10 @@ CURRENT_HV_START=2026-07-30
 - `FOUR_WEEK_*_ANCHOR`：四周周期锚点
 - `CURRENT_FV_START`：当前整版本起始日
 - `CURRENT_HV_START`：当前半版本起始日
+- `DASHBOARD_ENERGY_NOTIFY_TOKEN`：可选，若 `stat.icehe.life` 需要从网络调用内部通知接口，建议配置
 - 当前默认版本为 `2026-07-10` 至 `2026-08-20`；3.5 下半版本活动从 `2026-07-30` 开始
 - `2026-06-08` 起始的 3.4 版本按 `32` 天处理；其他整版本默认仍为 `42` 天
+- 内部通知接口 `POST /internal/dashboard/energy-revision` 默认仅允许本机请求；配置 `DASHBOARD_ENERGY_NOTIFY_TOKEN` 后，外部调用需在请求头携带 `X-Notify-Token`
 
 ## 鉴权
 
@@ -291,6 +294,8 @@ python3 scripts/install_hermes_waveplate_alert.py
 ### 每日每周与周期活动
 
 - `GET /dashboard/accounts`
+- `GET /dashboard/energy-revision`
+- `POST /internal/dashboard/energy-revision`
 - `GET /periodic/accounts`
 - `POST /accounts/by-id/{id}/checkins`
 - `POST /accounts/by-id/{id}/tacet`
