@@ -8,9 +8,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
-JOB_NAME = "鸣潮体力 1小时预满提醒"
+JOB_NAME = "鸣潮体力 1小时/1分钟预满提醒"
 WRAPPER_NAME = "wuwa_waveplate_alert.py"
 JOB_PROMPT = "This cron job is handled entirely by its pre-run script. No agent response is required."
+JOB_INTERVAL_MINUTES = 1
 HERMES_HOME = Path(os.getenv("HERMES_HOME", str(Path.home() / ".hermes"))).expanduser()
 JOBS_FILE = HERMES_HOME / "cron" / "jobs.json"
 WRAPPER_PATH = HERMES_HOME / "scripts" / WRAPPER_NAME
@@ -53,7 +54,7 @@ def save_job_doc(doc: dict) -> None:
     os.chmod(JOBS_FILE, 0o600)
 
 
-def compute_next_run(interval_minutes: int = 5) -> str:
+def compute_next_run(interval_minutes: int = JOB_INTERVAL_MINUTES) -> str:
     now = datetime.now().astimezone()
     base = now.replace(second=0, microsecond=0)
     minute_offset = base.minute % interval_minutes
@@ -85,10 +86,10 @@ def build_job(existing: dict | None) -> dict:
         "context_from": None,
         "schedule": {
             "kind": "interval",
-            "minutes": 5,
-            "display": "every 5m",
+            "minutes": JOB_INTERVAL_MINUTES,
+            "display": f"every {JOB_INTERVAL_MINUTES}m",
         },
-        "schedule_display": "every 5m",
+        "schedule_display": f"every {JOB_INTERVAL_MINUTES}m",
         "repeat": {
             "times": None,
             "completed": repeat_completed,
@@ -98,7 +99,7 @@ def build_job(existing: dict | None) -> dict:
         "paused_at": None,
         "paused_reason": None,
         "created_at": existing.get("created_at", now_iso) if existing else now_iso,
-        "next_run_at": compute_next_run(5),
+        "next_run_at": compute_next_run(),
         "last_run_at": existing.get("last_run_at") if existing else None,
         "last_status": existing.get("last_status") if existing else None,
         "last_error": existing.get("last_error") if existing else None,

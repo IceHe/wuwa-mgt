@@ -1464,8 +1464,6 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		"version_hologram_challenge",
 		"version_echo_template_adjust",
 		"version_mainline",
-		"temp_photo",
-		"temp_roguelike",
 		"hv_trial_character",
 		"monthly_tower_exchange",
 		"four_week_tower",
@@ -1521,8 +1519,6 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 		vhc := defaultStatus(flags["version_hologram_challenge"])
 		veta := defaultStatus(flags["version_echo_template_adjust"])
 		vm := defaultStatus(flags["version_mainline"])
-		tp := defaultStatus(flags["temp_photo"])
-		trog := defaultStatus(flags["temp_roguelike"])
 		hvtc := defaultStatus(flags["hv_trial_character"])
 		mte := defaultStatus(flags["monthly_tower_exchange"])
 		fwt := defaultStatus(flags["four_week_tower"])
@@ -1546,10 +1542,6 @@ func (a *App) handlePeriodicAccounts(w http.ResponseWriter, r *http.Request) {
 			VersionEchoTemplateAdjustStatus: veta,
 			VersionMainline:                 isDoneStatus(vm),
 			VersionMainlineStatus:           vm,
-			TempPhoto:                       isDoneStatus(tp),
-			TempPhotoStatus:                 tp,
-			TempRoguelike:                   isDoneStatus(trog),
-			TempRoguelikeStatus:             trog,
 			HVTrialCharacter:                isDoneStatus(hvtc),
 			HVTrialCharacterStatus:          hvtc,
 			MonthlyTowerExchange:            isDoneStatus(mte),

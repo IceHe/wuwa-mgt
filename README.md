@@ -22,7 +22,6 @@
 ### `周期活动`
 
 - 每版本：`终焉矩阵 / 小珊瑚兑换 / 全息挑战 / 声骸模板 / 主线`
-- 临时活动：`赛车 / 肉鸽`
 - 每半版本：`角色试用`
 - 每月：`深塔兑换所`
 - 每四周：`深塔 / 海墟`
@@ -96,10 +95,12 @@ AUTH_BASE_URL=http://127.0.0.1:8080
 AUTH_REQUIRED_PERMISSION=manage
 AUTH_VALIDATE_TIMEOUT_SECONDS=3
 DASHBOARD_ENERGY_NOTIFY_TOKEN=
+WUWA_WAVEPLATE_ALERT_NTFY_TOKEN=
+WUWA_WAVEPLATE_ALERT_THRESHOLDS_MINUTES=60,1
 FOUR_WEEK_TOWER_ANCHOR=2026-03-30
 FOUR_WEEK_RUINS_ANCHOR=2026-03-16
-CURRENT_FV_START=2026-07-10
-CURRENT_HV_START=2026-07-30
+CURRENT_FV_START=2026-08-20
+CURRENT_HV_START=2026-08-20
 ```
 
 说明：
@@ -109,7 +110,7 @@ CURRENT_HV_START=2026-07-30
 - `CURRENT_FV_START`：当前整版本起始日
 - `CURRENT_HV_START`：当前半版本起始日
 - `DASHBOARD_ENERGY_NOTIFY_TOKEN`：可选，若 `stat.icehe.life` 需要从网络调用内部通知接口，建议配置
-- 当前默认版本为 `2026-07-10` 至 `2026-08-20`；3.5 下半版本活动从 `2026-07-30` 开始
+- 当前默认版本为 `2026-08-20` 至 `2026-09-30`；3.6 当前半版本活动从 `2026-08-20` 开始，下半版本预计从 `2026-09-10` 再切换
 - `2026-06-08` 起始的 3.4 版本按 `32` 天处理；其他整版本默认仍为 `42` 天
 - 内部通知接口 `POST /internal/dashboard/energy-revision` 默认仅允许本机请求；配置 `DASHBOARD_ENERGY_NOTIFY_TOKEN` 后，外部调用需在请求头携带 `X-Notify-Token`
 
@@ -230,9 +231,9 @@ cd ..
 - 检查后端 `http://127.0.0.1:8765/healthz`
 - 检查前端 `https://mgt.icehe.life/`
 
-## Hermes 体力提醒
+## 体力提醒
 
-- 体力提醒不走 `openclaw`，改为复用本机 `hermes gateway` 的 `telegram` 通道
+- 体力提醒由本机 Hermes cron 定时触发，但发送层直接走自建 `ntfy`
 - 安装或修复提醒任务：
 
 ```bash
@@ -241,18 +242,22 @@ python3 scripts/install_hermes_waveplate_alert.py
 
 - 安装器会：
   - 写入 `~/.hermes/scripts/wuwa_waveplate_alert.py` wrapper
-  - 注册或更新 Hermes cron 任务 `鸣潮体力 1小时预满提醒`
-  - 以 `every 5m` 频率检查“启用账号距离满体力是否进入 1 小时窗口”
+  - 注册或更新 Hermes cron 任务 `鸣潮体力 1小时/1分钟预满提醒`
+  - 以 `every 1m` 频率检查“启用账号距离满体力是否进入 1 小时或 1 分钟窗口”
 - 主逻辑脚本位于 `scripts/hermes_waveplate_alert.py`
 - 脚本默认读取：
-  - `~/.hermes/.env`：Hermes/Telegram 通道配置
+  - `~/.hermes/.env`：Hermes 环境配置
   - 项目根目录 `.env`
   - `backend/.env`
 - 可选环境变量：
-  - `WUWA_WAVEPLATE_ALERT_CHANNELS`：覆盖发送通道，默认 `telegram`
-  - `WUWA_WAVEPLATE_ALERT_TELEGRAM_TARGET`：覆盖 Telegram 目标
-  - `WUWA_WAVEPLATE_ALERT_THRESHOLD_MINUTES`：提醒阈值，默认 `60`
-  - `WUWA_WAVEPLATE_ALERT_WINDOW_MINUTES`：轮询窗口，默认 `5`
+  - `WUWA_WAVEPLATE_ALERT_NTFY_TOKEN`：ntfy Bearer token，生产环境必填，不提交到仓库
+  - `WUWA_WAVEPLATE_ALERT_NTFY_URL`：ntfy topic URL，默认 `https://ntfy.icehe.life/wuwa`
+  - `WUWA_WAVEPLATE_ALERT_NTFY_PRIORITY`：ntfy 优先级，默认 `high`
+  - `WUWA_WAVEPLATE_ALERT_THRESHOLDS_MINUTES`：提醒阈值列表，默认 `60,1`
+  - `WUWA_WAVEPLATE_ALERT_THRESHOLD_MINUTES`：兼容旧配置；未设置列表时，会作为第一个提醒阈值并额外保留 `1` 分钟提醒
+  - `WUWA_WAVEPLATE_ALERT_NTFY_ALERT_TITLE`：快满提醒标题，默认 `WuWa waveplate alert`
+  - `WUWA_WAVEPLATE_ALERT_NTFY_STATUS_TITLE`：手动状态推送标题，默认 `WuWa account status`
+- 每个进入提醒阈值内的账号会单独发送一条 ntfy 通知，并按“阈值 + 账号满体时间”去重；如果发送失败，下次定时检查会继续重试，直到成功或账号已满
 - 状态与日志文件：
   - 状态：`~/.hermes/scripts/.wuwa_waveplate_alert_state.json`
   - 日志：`~/.hermes/scripts/.wuwa_waveplate_alert.log`

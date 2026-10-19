@@ -27,14 +27,11 @@
             <col class="col-flag" />
             <col class="col-flag" />
             <col class="col-flag" />
-            <col class="col-flag" />
-            <col class="col-flag" />
           </colgroup>
           <thead>
             <tr class="group-row">
               <th rowspan="2" class="group-id">ID / 尾号 / 昵称</th>
               <th colspan="5" class="group-fv">每版本</th>
-              <th colspan="2" class="group-temp">临时活动</th>
               <th colspan="1" class="group-hv">每半版本</th>
               <th colspan="1" class="group-monthly">每月</th>
               <th colspan="2" class="group-fourweek">每四周</th>
@@ -45,8 +42,6 @@
               <th class="col-version-hologram">全息挑战</th>
               <th class="col-version-template">声骸模板</th>
               <th class="col-version-mainline">主线</th>
-              <th class="col-temp-photo">拍照</th>
-              <th class="col-temp-roguelike">肉鸽</th>
               <th class="col-hv-trial">角色试用</th>
               <th class="col-monthly-tower">深塔兑换所</th>
               <th class="col-fw-tower">深塔</th>
@@ -127,20 +122,6 @@ const activities = [
     boolField: 'version_mainline',
     flagClass: 'flag-version-mainline',
     cellClass: 'cell-version-mainline',
-  },
-  {
-    key: 'temp_photo',
-    statusField: 'temp_photo_status',
-    boolField: 'temp_photo',
-    flagClass: 'flag-temp-photo',
-    cellClass: 'cell-temp-photo',
-  },
-  {
-    key: 'temp_roguelike',
-    statusField: 'temp_roguelike_status',
-    boolField: 'temp_roguelike',
-    flagClass: 'flag-temp-roguelike',
-    cellClass: 'cell-temp-roguelike',
   },
   {
     key: 'hv_trial_character',

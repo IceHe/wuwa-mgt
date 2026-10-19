@@ -31,14 +31,11 @@
             <col class="col-flag" />
             <col class="col-flag" />
             <col class="col-flag" />
-            <col class="col-flag" />
-            <col class="col-flag" />
           </colgroup>
           <thead>
             <tr class="group-row">
               <th rowspan="2" class="group-id">ID / 尾号 / 昵称</th>
               <th colspan="5" class="group-fv">每版本</th>
-              <th colspan="2" class="group-temp">临时活动</th>
               <th colspan="1" class="group-hv">每半版本</th>
               <th colspan="1" class="group-monthly">每月</th>
               <th colspan="2" class="group-fourweek">每四周</th>
@@ -49,8 +46,6 @@
               <th class="col-version-hologram">全息挑战</th>
               <th class="col-version-template">声骸模板</th>
               <th class="col-version-mainline">主线</th>
-              <th class="col-temp-photo">拍照</th>
-              <th class="col-temp-roguelike">肉鸽</th>
               <th class="col-hv-trial">角色试用</th>
               <th class="col-monthly-tower">深塔兑换所</th>
               <th class="col-fw-tower">深塔</th>
@@ -106,20 +101,6 @@
                 <label :class="['status-item', 'flag-version-mainline', statusClass(versionMainlineInput[acc.id]), { 'flag-all-done': allDoneFlags.version_mainline }]">
                   <button type="button" class="status-toggle" :title="statusLabel(versionMainlineInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_mainline')">
                     {{ statusLabel(versionMainlineInput[acc.id]) }}
-                  </button>
-                </label>
-              </td>
-              <td class="cell-temp-photo">
-                <label :class="['status-item', 'flag-temp-photo', statusClass(tempPhotoInput[acc.id]), { 'flag-all-done': allDoneFlags.temp_photo }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(tempPhotoInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'temp_photo')">
-                    {{ statusLabel(tempPhotoInput[acc.id]) }}
-                  </button>
-                </label>
-              </td>
-              <td class="cell-temp-roguelike">
-                <label :class="['status-item', 'flag-temp-roguelike', statusClass(tempRoguelikeInput[acc.id]), { 'flag-all-done': allDoneFlags.temp_roguelike }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(tempRoguelikeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'temp_roguelike')">
-                    {{ statusLabel(tempRoguelikeInput[acc.id]) }}
                   </button>
                 </label>
               </td>
@@ -180,8 +161,6 @@ const versionSmallCoralInput = ref({})
 const versionHologramInput = ref({})
 const versionEchoTemplateInput = ref({})
 const versionMainlineInput = ref({})
-const tempPhotoInput = ref({})
-const tempRoguelikeInput = ref({})
 const hvTrialCharacterInput = ref({})
 const monthlyTowerExchangeInput = ref({})
 const fourWeekTowerInput = ref({})
@@ -211,8 +190,6 @@ const allDoneFlags = computed(() => ({
   version_hologram_challenge: isAllCompleted(versionHologramInput.value),
   version_echo_template_adjust: isAllCompleted(versionEchoTemplateInput.value),
   version_mainline: isAllCompleted(versionMainlineInput.value),
-  temp_photo: isAllCompleted(tempPhotoInput.value),
-  temp_roguelike: isAllCompleted(tempRoguelikeInput.value),
   hv_trial_character: isAllCompleted(hvTrialCharacterInput.value),
   monthly_tower_exchange: isAllCompleted(monthlyTowerExchangeInput.value),
   four_week_tower: isAllCompleted(fourWeekTowerInput.value),
@@ -271,8 +248,6 @@ function statusMapByKey(flagKey) {
   if (flagKey === 'version_hologram_challenge') return versionHologramInput.value
   if (flagKey === 'version_echo_template_adjust') return versionEchoTemplateInput.value
   if (flagKey === 'version_mainline') return versionMainlineInput.value
-  if (flagKey === 'temp_photo') return tempPhotoInput.value
-  if (flagKey === 'temp_roguelike') return tempRoguelikeInput.value
   if (flagKey === 'hv_trial_character') return hvTrialCharacterInput.value
   if (flagKey === 'monthly_tower_exchange') return monthlyTowerExchangeInput.value
   if (flagKey === 'four_week_tower') return fourWeekTowerInput.value
@@ -294,8 +269,6 @@ async function refresh() {
     versionHologramInput.value[acc.id] = normalizeStatus(acc.version_hologram_challenge_status, acc.version_hologram_challenge)
     versionEchoTemplateInput.value[acc.id] = normalizeStatus(acc.version_echo_template_adjust_status, acc.version_echo_template_adjust)
     versionMainlineInput.value[acc.id] = normalizeStatus(acc.version_mainline_status, acc.version_mainline)
-    tempPhotoInput.value[acc.id] = normalizeStatus(acc.temp_photo_status, acc.temp_photo)
-    tempRoguelikeInput.value[acc.id] = normalizeStatus(acc.temp_roguelike_status, acc.temp_roguelike)
     hvTrialCharacterInput.value[acc.id] = normalizeStatus(acc.hv_trial_character_status, acc.hv_trial_character)
     monthlyTowerExchangeInput.value[acc.id] = normalizeStatus(acc.monthly_tower_exchange_status, acc.monthly_tower_exchange)
     fourWeekTowerInput.value[acc.id] = normalizeStatus(acc.four_week_tower_status, acc.four_week_tower)

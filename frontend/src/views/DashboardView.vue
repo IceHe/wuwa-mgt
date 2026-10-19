@@ -157,14 +157,6 @@ const PERIODIC_STATUS_FIELDS = {
     statusField: 'version_mainline_status',
     boolField: 'version_mainline',
   },
-  temp_photo: {
-    statusField: 'temp_photo_status',
-    boolField: 'temp_photo',
-  },
-  temp_roguelike: {
-    statusField: 'temp_roguelike_status',
-    boolField: 'temp_roguelike',
-  },
   hv_trial_character: {
     statusField: 'hv_trial_character_status',
     boolField: 'hv_trial_character',
