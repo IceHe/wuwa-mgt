@@ -631,6 +631,27 @@ table {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
+.periodic-column-reset {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 2px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: normal;
+}
+
+.periodic-column-reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.periodic-column-reset:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .periodic-table thead .group-row th.group-id {
   background: linear-gradient(180deg, #f6f9ff 0%, #edf3fd 100%);
 }

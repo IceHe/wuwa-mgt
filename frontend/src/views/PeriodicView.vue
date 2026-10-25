@@ -41,15 +41,15 @@
               <th colspan="2" class="group-fourweek">每四周</th>
             </tr>
             <tr>
-              <th class="col-version-matrix">终焉矩阵</th>
-              <th class="col-version-coral">小珊瑚兑换</th>
-              <th class="col-version-hologram">全息挑战</th>
-              <th class="col-version-template">声骸模板</th>
-              <th class="col-version-mainline">主线</th>
-              <th class="col-hv-trial">角色试用</th>
-              <th class="col-monthly-tower">深塔兑换所</th>
-              <th class="col-fw-tower">深塔</th>
-              <th class="col-fw-ruins">海墟</th>
+              <th v-for="column in activityColumns" :key="column.key" :class="column.className">
+                <button
+                  type="button"
+                  class="periodic-column-reset"
+                  :disabled="resettingColumn !== null || pendingUpdates > 0 || !sortedAccounts.length"
+                  :title="`将当前显示玩家的${column.label}重置为 Todo`"
+                  @click="resetColumn(column)"
+                >{{ column.label }}{{ resettingColumn === column.key ? '…' : '' }}</button>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -71,63 +71,63 @@
               </td>
               <td>
                 <label :class="['status-item', 'flag-version-matrix', statusClass(versionMatrixSoldierInput[acc.id]), { 'flag-all-done': allDoneFlags.version_matrix_soldier }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(versionMatrixSoldierInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_matrix_soldier')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(versionMatrixSoldierInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_matrix_soldier')">
                     {{ statusLabel(versionMatrixSoldierInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-version-coral', statusClass(versionSmallCoralInput[acc.id]), { 'flag-all-done': allDoneFlags.version_small_coral_exchange }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(versionSmallCoralInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_small_coral_exchange')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(versionSmallCoralInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_small_coral_exchange')">
                     {{ statusLabel(versionSmallCoralInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-version-hologram', statusClass(versionHologramInput[acc.id]), { 'flag-all-done': allDoneFlags.version_hologram_challenge }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(versionHologramInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_hologram_challenge')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(versionHologramInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_hologram_challenge')">
                     {{ statusLabel(versionHologramInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-version-template', statusClass(versionEchoTemplateInput[acc.id]), { 'flag-all-done': allDoneFlags.version_echo_template_adjust }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(versionEchoTemplateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_echo_template_adjust')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(versionEchoTemplateInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_echo_template_adjust')">
                     {{ statusLabel(versionEchoTemplateInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-version-mainline', statusClass(versionMainlineInput[acc.id]), { 'flag-all-done': allDoneFlags.version_mainline }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(versionMainlineInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_mainline')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(versionMainlineInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'version_mainline')">
                     {{ statusLabel(versionMainlineInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-hv-trial', statusClass(hvTrialCharacterInput[acc.id]), { 'flag-all-done': allDoneFlags.hv_trial_character }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(hvTrialCharacterInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'hv_trial_character')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(hvTrialCharacterInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'hv_trial_character')">
                     {{ statusLabel(hvTrialCharacterInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-monthly-tower', statusClass(monthlyTowerExchangeInput[acc.id]), { 'flag-all-done': allDoneFlags.monthly_tower_exchange }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(monthlyTowerExchangeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'monthly_tower_exchange')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(monthlyTowerExchangeInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'monthly_tower_exchange')">
                     {{ statusLabel(monthlyTowerExchangeInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-fw-tower', statusClass(fourWeekTowerInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_tower }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(fourWeekTowerInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_tower')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(fourWeekTowerInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_tower')">
                     {{ statusLabel(fourWeekTowerInput[acc.id]) }}
                   </button>
                 </label>
               </td>
               <td>
                 <label :class="['status-item', 'flag-fw-ruins', statusClass(fourWeekRuinsInput[acc.id]), { 'flag-all-done': allDoneFlags.four_week_ruins }]">
-                  <button type="button" class="status-toggle" :title="statusLabel(fourWeekRuinsInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_ruins')">
+                  <button type="button" class="status-toggle" :disabled="resettingColumn !== null" :title="statusLabel(fourWeekRuinsInput[acc.id])" @click.stop="cycleCheckin(acc.id, 'four_week_ruins')">
                     {{ statusLabel(fourWeekRuinsInput[acc.id]) }}
                   </button>
                 </label>
@@ -150,6 +150,19 @@ const LAST_EDIT_STORAGE_KEY = 'wuwa_periodic_last_edit_map_v1'
 const SORT_MODE_STORAGE_KEY = 'wuwa_periodic_sort_mode_v1'
 const SORT_MODE_OPTIONS = ['abbr', 'created_desc', 'recent_edit']
 const STATUS_FLOW = ['todo', 'done', 'skipped']
+const activityColumns = [
+  { key: 'version_matrix_soldier', label: '终焉矩阵', className: 'col-version-matrix' },
+  { key: 'version_small_coral_exchange', label: '小珊瑚兑换', className: 'col-version-coral' },
+  { key: 'version_hologram_challenge', label: '全息挑战', className: 'col-version-hologram' },
+  { key: 'version_echo_template_adjust', label: '声骸模板', className: 'col-version-template' },
+  { key: 'version_mainline', label: '主线', className: 'col-version-mainline' },
+  { key: 'hv_trial_character', label: '角色试用', className: 'col-hv-trial' },
+  { key: 'monthly_tower_exchange', label: '深塔兑换所', className: 'col-monthly-tower' },
+  { key: 'four_week_tower', label: '深塔', className: 'col-fw-tower' },
+  { key: 'four_week_ruins', label: '海墟', className: 'col-fw-ruins' },
+]
+const resettingColumn = ref(null)
+const pendingUpdates = ref(0)
 
 const accounts = ref([])
 const sortMode = ref(loadStoredValue(SORT_MODE_STORAGE_KEY, 'abbr', SORT_MODE_OPTIONS))
@@ -278,6 +291,7 @@ async function refresh() {
 }
 
 async function cycleCheckin(id, flagKey) {
+  if (resettingColumn.value !== null) return
   const map = statusMapByKey(flagKey)
   const current = map[id]
   const next = nextStatus(current)
@@ -286,12 +300,45 @@ async function cycleCheckin(id, flagKey) {
 }
 
 async function updateCheckin(id, flagKey, status) {
+  pendingUpdates.value++
   try {
     await api.setCheckin(id, flagKey, status)
     markEdited(id)
   } catch (err) {
     alert(`保存失败：${err.message || '请稍后重试'}`)
     await refresh()
+  } finally {
+    pendingUpdates.value--
+  }
+}
+
+async function resetColumn(column) {
+  if (resettingColumn.value !== null || pendingUpdates.value > 0) return
+  const ids = sortedAccounts.value.map((acc) => acc.id)
+  if (!ids.length) return
+  if (!confirm(`确认将当前显示的 ${ids.length} 位玩家的「${column.label}」全部重置为 Todo？`)) return
+
+  resettingColumn.value = column.key
+  let failed = 0
+  try {
+    const map = statusMapByKey(column.key)
+    for (const id of ids) {
+      try {
+        await api.setCheckin(id, column.key, 'todo')
+        map[id] = 'todo'
+        markEdited(id)
+      } catch {
+        failed++
+      }
+    }
+    if (failed) alert(`「${column.label}」重置完成：成功 ${ids.length - failed} 位，失败 ${failed} 位，请重试。`)
+    try {
+      await refresh()
+    } catch (err) {
+      alert(`刷新失败：${err.message || '请稍后刷新页面确认状态'}`)
+    }
+  } finally {
+    resettingColumn.value = null
   }
 }
 
